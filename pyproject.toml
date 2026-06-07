@@ -4,19 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "canary-ml"
-version = "0.1.0"
+version = "1.0.0"
 description = "Lightweight drift and anomaly monitoring for production ML models."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.24",
-    "pandas>=2.0",
     "scipy>=1.10",
     "scikit-learn>=1.3",
-    "streamlit>=1.30",
-    "plotly>=5.18",
-    "rich>=13.0",
+"rich>=13.0",
 ]
 
 [project.optional-dependencies]
@@ -30,3 +27,6 @@ Repository = "https://github.com/aitor1717/canary-ml"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["canary_ml*"]
+
+[tool.setuptools.package-data]
+canary_ml = ["dashboard.html"]

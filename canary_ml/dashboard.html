@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>canary · monitoring</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0b;
+      --surface:   #131310;
+      --surfaceHi: #1a1a17;
+      --border:    #1e1e1a;
+      --borderHi:  #2a2a24;
+      --text:      #cac6b4;
+      --muted:     #56564e;
+      --dim:       #32322c;
+      --yellow:    #d4a827;
+      --ydim:      #7a6018;
+      --red:       #bf4040;
+      --rdim:      #7a2828;
+      --green:     #4a8a54;
+      --blue:      #6b9ed4;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ──────────────────────────────────────────────────────────── */
+    #header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,13,11,0.96);
+      border-bottom: 1px solid var(--border);
+      padding: 13px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      backdrop-filter: blur(10px);
+    }
+    .h-left { display: flex; align-items: center; gap: 18px; }
+    .h-logo {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 18px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--yellow);
+      display: flex; align-items: center; gap: 9px;
+    }
+    .badge {
+      font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 2px; border: 1px solid;
+      transition: color 0.4s, border-color 0.4s;
+    }
+    .badge-alert  { color: var(--red);    border-color: var(--rdim); }
+    .badge-warn   { color: var(--yellow); border-color: var(--ydim); }
+    .badge-stable { color: var(--muted);  border-color: var(--border); }
+    .badge-mock   { color: var(--blue);   border-color: #3a5a7a; }
+    .h-right { display: flex; align-items: center; }
+
+    .pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .pulse.on { background: var(--yellow); animation: blink 0.5s ease; }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+
+    /* ── LAYOUT ──────────────────────────────────────────────────────────── */
+    #main { padding: 20px 24px; max-width: 1440px; margin: 0 auto; }
+
+    /* ── CARDS ───────────────────────────────────────────────────────────── */
+    #cards {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px; margin-bottom: 18px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--borderHi);
+      border-radius: 5px; padding: 16px 18px;
+    }
+    .card-label {
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .card-value {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 38px; line-height: 1; letter-spacing: 0.01em;
+      color: var(--text); transition: color 0.4s;
+    }
+    .card-value.alert { color: var(--red); }
+    .card-value.warn  { color: var(--yellow); }
+    .card-sub { font-size: 10px; color: var(--muted); margin-top: 7px; }
+
+    /* ── PANELS ──────────────────────────────────────────────────────────── */
+    .panel {
+      background: var(--surface); border: 1px solid var(--borderHi);
+      border-radius: 5px; padding: 18px 20px; margin-bottom: 18px;
+    }
+    .panel-hdr {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .panel-title {
+      font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .panel-legend { display: flex; gap: 18px; font-size: 10px; }
+
+    /* ── TIMELINE ────────────────────────────────────────────────────────── */
+    #timeline { display: block; width: 100%; height: 160px; }
+
+    /* ── BOTTOM GRID ─────────────────────────────────────────────────────── */
+    #bottom {
+      display: grid; grid-template-columns: 1fr;
+      gap: 18px; margin-bottom: 18px;
+    }
+    #heatmap { overflow-x: auto; }
+    #bottom .panel { margin-bottom: 0; }
+
+    /* ── HEATMAP ─────────────────────────────────────────────────────────── */
+    .hm-time-row { display: grid; gap: 2px; margin-bottom: 5px; }
+    .hm-time-lbl { font-size: 8px; color: var(--muted); text-align: center; }
+    .hm-row {
+      display: grid; gap: 2px; margin-bottom: 2px;
+      cursor: pointer; border-radius: 2px;
+    }
+    .hm-row:hover .hm-name { color: var(--text); }
+    .hm-row.sel .hm-name   { color: var(--yellow); }
+    .hm-name {
+      font-size: 10px; color: var(--muted);
+      display: flex; align-items: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      padding-right: 6px; transition: color 0.2s;
+    }
+    .hm-cell {
+      height: 20px; border-radius: 2px;
+      background: var(--borderHi);
+      border: 1px solid transparent; transition: border-color 0.2s;
+    }
+    .hm-row.sel .hm-cell:last-child { border-color: rgba(212,168,39,0.6); }
+    .hm-legend {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 14px; font-size: 9px; color: var(--muted);
+    }
+    .hm-swatch {
+      width: 12px; height: 12px; border-radius: 2px;
+      display: inline-block; border: 1px solid var(--borderHi);
+    }
+
+    /* ── DISTRIBUTIONS ───────────────────────────────────────────────────── */
+    #dist { padding-top: 2px; }
+    .dist-row { margin-bottom: 14px; }
+    .dist-row:last-child { margin-bottom: 0; }
+    .dist-lbl {
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .dist-canvas { display: block; width: 100%; height: 76px; }
+
+    /* ── ALERT TABLE ─────────────────────────────────────────────────────── */
+    #alert-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    #alert-table th {
+      text-align: left; padding: 4px 12px 8px 0;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); font-weight: 400;
+      border-bottom: 1px solid var(--borderHi);
+    }
+    #alert-table td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--border); }
+    #alert-table tr:last-child td { border-bottom: none; }
+
+    /* ── EMPTY STATE ─────────────────────────────────────────────────────── */
+    #empty {
+      display: none; text-align: center;
+      padding: 100px 24px;
+    }
+    #empty.show { display: block; }
+    .empty-head {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 30px; letter-spacing: 0.05em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 12px;
+    }
+    .empty-sub { font-size: 12px; color: var(--muted); margin-bottom: 28px; }
+    .empty-code {
+      display: inline-block; background: var(--surface);
+      border: 1px solid var(--borderHi); border-radius: 5px;
+      padding: 18px 28px; text-align: left; line-height: 1.85; font-size: 12px;
+    }
+    .kw { color: #f92672; } .cy { color: var(--yellow); font-weight: 500; }
+    .st { color: #e6db74; } .nu { color: #ae81ff; }
+    .cm { color: var(--muted); font-style: italic; }
+
+    /* ── FOOTER ──────────────────────────────────────────────────────────── */
+    #dash-footer {
+      border-top: 1px solid var(--border);
+      padding: 10px 24px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    @media (max-width: 860px) {
+      #cards  { grid-template-columns: repeat(2,1fr); }
+    }
+
+    @media (max-width: 500px) {
+      #header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 14px; }
+      .h-right { width: 100%; display: flex; align-items: center; justify-content: flex-end; }
+      #cards { grid-template-columns: repeat(2,1fr); gap: 1px; }
+      .card { padding: 12px 14px; }
+      .card-value { font-size: 28px; }
+      #main { padding: 12px; gap: 12px; }
+      .panel-hdr { padding: 10px 14px; }
+      .panel-body { padding: 12px 14px; }
+      .alert-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="h-left">
+    <div class="h-logo">
+      <svg width="10" height="10"><circle cx="5" cy="5" r="5" fill="#d4a827"/></svg>
+      canary
+    </div>
+    <span class="badge badge-stable" id="h-badge">no data</span>
+    <span class="badge badge-mock" id="h-mock" style="display:none;">sample data</span>
+  </div>
+  <div class="h-right">
+    <span class="pulse" id="pulse"></span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main" style="display:none;">
+
+  <!-- STAT CARDS -->
+  <div id="cards">
+    <div class="card">
+      <div class="card-label">PSI score</div>
+      <div class="card-value" id="cv-psi">—</div>
+      <div class="card-sub" id="cs-psi">threshold: 0.20</div>
+    </div>
+    <div class="card">
+      <div class="card-label">KS statistic</div>
+      <div class="card-value" id="cv-ks">—</div>
+      <div class="card-sub" id="cs-ks">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Anomaly rate</div>
+      <div class="card-value" id="cv-anom">—</div>
+      <div class="card-sub" id="cs-anom">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Batch size</div>
+      <div class="card-value" id="cv-batch">—</div>
+      <div class="card-sub" id="cs-batch">—</div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="panel">
+    <div class="panel-hdr">
+      <span class="panel-title">Drift Timeline · last 30 batches</span>
+      <div class="panel-legend">
+        <span style="color:var(--yellow);">── PSI score</span>
+        <span style="color:var(--blue);">── anomaly %</span>
+      </div>
+    </div>
+    <canvas id="timeline"></canvas>
+  </div>
+
+  <!-- HEATMAP + DISTRIBUTIONS -->
+  <div id="bottom">
+    <div class="panel">
+      <div class="panel-hdr">
+        <span class="panel-title">Feature Drift Map · KS per batch</span>
+      </div>
+      <div id="heatmap"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hdr">
+        <span class="panel-title">Distribution Shift</span>
+        <div class="panel-legend">
+          <span style="color:var(--muted);">── baseline</span>
+          <span style="color:var(--yellow);">── current</span>
+        </div>
+      </div>
+      <div id="dist"></div>
+    </div>
+  </div>
+
+  <!-- ALERT LOG -->
+  <div class="panel" id="alert-panel" style="display:none;">
+    <div class="panel-hdr">
+      <span class="panel-title">Alert Log · last 20</span>
+    </div>
+    <div class="alert-table-wrap">
+    <table id="alert-table">
+      <thead>
+        <tr>
+          <th>Time</th><th>PSI</th><th>KS max</th><th>Drifted</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="alert-body"></tbody>
+    </table>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- EMPTY STATE -->
+<div id="empty">
+  <div class="empty-head">Waiting for data</div>
+  <div class="empty-sub">Run <code style="color:var(--yellow)">monitor.predict(X)</code> to begin monitoring.</div>
+  <div class="empty-code"><span class="kw">from</span> <span class="cy">canary_ml</span> <span class="kw">import</span> <span class="cy">ModelMonitor</span>
+
+monitor = <span class="cy">ModelMonitor</span>(
+    model=your_model,
+    reference_data=X_train,
+)
+<span class="cm"># monitoring is a side effect of predict()</span>
+predictions = monitor.<span class="cy">predict</span>(X_new)
+monitor.<span class="cy">serve_dashboard</span>(port=<span class="nu">8501</span>)</div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG
+// When opened via Live Preview (port 5500/5501) or file://, talk to the Python
+// server explicitly. Otherwise use same-origin routing.
+// ─────────────────────────────────────────────────────────────────────────────
+const API = (() => {
+  const proto = window.location.protocol;
+  const port  = window.location.port;
+  if (!proto.startsWith('http') || port === '5500' || port === '5501') {
+    return 'http://localhost:8501';
+  }
+  return '';
+})();
+
+const REFRESH_MS = 5000;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COLORS (mirrors CSS variables for Canvas drawing)
+// ─────────────────────────────────────────────────────────────────────────────
+const C = {
+  bg: '#0d0d0b', surface: '#131310',
+  border: '#1e1e1a', borderHi: '#2a2a24',
+  text: '#cac6b4', muted: '#56564e', dim: '#32322c',
+  yellow: '#d4a827', ydim: '#7a6018',
+  red: '#bf4040', rdim: '#7a2828',
+  green: '#4a8a54', blue: '#6b9ed4',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+const S = { entries: [], reference: null, selFeature: 0, isMock: false };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCK DATA (used when server is unreachable — for visual development)
+// ─────────────────────────────────────────────────────────────────────────────
+function makeMockData() {
+  // Seeded-ish noise — same shape every load for a consistent demo
+  let _seed = 42;
+  const rand = () => { _seed = (_seed * 1664525 + 1013904223) & 0xffffffff; return (_seed >>> 0) / 0xffffffff; };
+  const rng  = (mu, sigma) => {
+    // Box-Muller with seeded rand
+    const u = Math.max(1e-10, rand()), v = rand();
+    return mu + sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+
+  // 24 batches — stable (B1–B8) → ramp (B9–B13) → peak (B14–B17) → recovery (B18–B22) → stable (B23–B24)
+  const N_BATCHES = 24, N_SAMPLES = 60, N_FEAT = 3;
+  const FEAT_NAMES = ['input_score', 'confidence', 'request_time'];
+  const REF_MU = [0.42, 0.71, 130], REF_SD = [0.12, 0.09, 18];
+  // Per-feature drift lags (input_score first, request_time lags behind)
+  const FEAT_LAG   = [0, 0.15, 0.30];
+  const FEAT_SCALE = [0.32, 0.20, 28];   // how far each feature shifts at peak
+
+  function driftEnvelope(b) {
+    if (b < 6)  return 0;
+    if (b < 13) return ((b - 6) / 7) ** 1.5;
+    if (b < 17) return 1;
+    return Math.max(0.05, 1 - ((b - 16) / 6) ** 1.5);
+  }
+
+  const reference = Array.from({ length: 300 }, () =>
+    REF_MU.map((mu, i) => +rng(mu, REF_SD[i]).toFixed(4)));
+
+  const now = Date.now();
+  const entries = Array.from({ length: N_BATCHES }, (_, b) => {
+    const ep    = driftEnvelope(b);
+    const noise = () => (rand() - 0.5) * 0.038;
+
+    // Per-feature lagged ep — used for BOTH sample generation AND KS stats
+    const fep = FEAT_LAG.map(lag => Math.max(0, ep - lag));
+
+    // Sample means/stds derived from per-feature eps → distributions match heatmap
+    const mu = REF_MU.map((m, i) => i === 1 ? m - fep[i] * FEAT_SCALE[i] : m + fep[i] * FEAT_SCALE[i]);
+    const sd = REF_SD.map((s, i) => s * (1 + fep[i] * (i === 2 ? 0.65 : 0.30)));
+
+    const psi = +(ep * 0.68 + Math.abs(noise())).toFixed(3);
+
+    const ks = {};
+    for (let f = 0; f < N_FEAT; f++) {
+      const stat = Math.min(0.99, +(fep[f] * (0.72 + f * 0.08) + (rand() - 0.5) * 0.10).toFixed(3));
+      ks[String(f)] = {
+        statistic: Math.max(0, stat),
+        p_value: +(Math.max(0.001, 0.85 - fep[f] * 3.2 + (rand() - 0.5) * 0.08)).toFixed(3),
+        drifted: stat > 0.15,
+      };
+    }
+
+    return {
+      timestamp: new Date(now - (N_BATCHES - b) * 5 * 60 * 1000).toISOString(),
+      n_samples: N_SAMPLES,
+      psi_score: psi,
+      ks_results: ks,
+      anomaly_rate: +(ep * 0.18 + 0.008 + Math.abs((rand() - 0.5) * 0.04)).toFixed(3),
+      drift_detected: psi > 0.1,
+      alert_triggered: psi > 0.2,
+      feature_names: FEAT_NAMES,
+      feature_sample: Array.from({ length: N_SAMPLES }, () =>
+        mu.map((m, i) => +rng(m, sd[i]).toFixed(4))),
+    };
+  });
+
+  return { entries, reference };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATA FETCHING
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchAll() {
+  try {
+    const [dr, rr] = await Promise.all([
+      fetch(`${API}/api/data?n=100`),
+      fetch(`${API}/api/reference`),
+    ]);
+    const entries = (await dr.json()) || [];
+    if (entries.length === 0) throw new Error('empty');
+    S.entries   = entries;
+    S.reference = await rr.json();
+    return true;
+  } catch {
+    if (S.entries.length === 0) {
+      const mock = makeMockData();
+      S.entries   = mock.entries;
+      S.reference = mock.reference;
+      S.isMock    = true;
+    }
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CANVAS HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function initCanvas(el) {
+  const dpr  = window.devicePixelRatio || 1;
+  const W    = el.clientWidth  || el.parentElement.clientWidth || 400;
+  const H    = el.clientHeight || 160;
+  el.width   = W * dpr;
+  el.height  = H * dpr;
+  el.style.width  = W + 'px';
+  el.style.height = H + 'px';
+  const ctx  = el.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, W, H };
+}
+
+// Catmull-Rom → cubic bezier smooth polyline
+function smoothLine(ctx, pts) {
+  if (pts.length < 2) return;
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    ctx.bezierCurveTo(
+      p1.x + (p2.x - p0.x) * 0.25, p1.y + (p2.y - p0.y) * 0.25,
+      p2.x - (p3.x - p1.x) * 0.25, p2.y - (p3.y - p1.y) * 0.25,
+      p2.x, p2.y,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KDE
+// ─────────────────────────────────────────────────────────────────────────────
+function scotts(data) {
+  const n = data.length;
+  if (n < 2) return 1;
+  const mean = data.reduce((a, b) => a + b) / n;
+  const std  = Math.sqrt(data.reduce((a, x) => a + (x - mean) ** 2, 0) / n) || 1;
+  return 1.06 * std * n ** -0.2;
+}
+
+function kde(data, h, N = 80) {
+  if (!data.length) return { xs: [], ys: [] };
+  const mn = Math.min(...data), mx = Math.max(...data);
+  const pad = h * 2.5;
+  const lo = mn - pad, hi = mx + pad;
+  const xs = [], ys = [];
+  for (let i = 0; i <= N; i++) {
+    const x = lo + (hi - lo) * i / N;
+    let s = 0;
+    for (const xi of data) s += Math.exp(-0.5 * ((x - xi) / h) ** 2);
+    xs.push(x);
+    ys.push(s / (data.length * h * Math.sqrt(2 * Math.PI)));
+  }
+  return { xs, ys, xMin: lo, xMax: hi };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIMELINE
+// ─────────────────────────────────────────────────────────────────────────────
+function drawTimeline() {
+  const el = document.getElementById('timeline');
+  if (!el) return;
+  const entries = S.entries.slice(-30);
+  if (!entries.length) return;
+
+  const { ctx, W, H } = initCanvas(el);
+  const PL = 44, PR = 44, PT = 10, PB = 26;
+  const cW = W - PL - PR, cH = H - PT - PB;
+
+  const psiSeries  = entries.map(e => e.psi_score    || 0);
+  const anomSeries = entries.map(e => (e.anomaly_rate || 0) * 100);
+  const n          = entries.length;
+
+  const psiMax  = Math.max(0.3, ...psiSeries)  * 1.2;
+  const anomMax = Math.max(3,   ...anomSeries) * 1.2;
+
+  const mX = i => PL + (n < 2 ? cW / 2 : (i / (n - 1)) * cW);
+  const mP = v => PT + cH - (v / psiMax)  * cH;
+  const mA = v => PT + cH - (v / anomMax) * cH;
+
+  // Grid lines
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++) {
+    const y = PT + cH * i / 4;
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke();
+  }
+
+  // Threshold at PSI = 0.2
+  const thY = mP(0.2);
+  if (thY >= PT && thY <= PT + cH) {
+    ctx.save();
+    ctx.setLineDash([4, 5]); ctx.strokeStyle = C.ydim; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PL, thY); ctx.lineTo(W - PR, thY); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = C.ydim; ctx.font = '9px "Fira Code"';
+    ctx.textAlign = 'right';
+    ctx.fillText('0.20', PL - 5, thY + 3.5);
+  }
+
+  // Clip to chart area so curves can't bleed past axes
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PL, PT, cW, cH + 1);
+  ctx.clip();
+
+  // PSI area fill
+  const psiPts = entries.map((_, i) => ({ x: mX(i), y: mP(psiSeries[i]) }));
+  ctx.save();
+  ctx.beginPath();
+  smoothLine(ctx, psiPts);
+  ctx.lineTo(psiPts[psiPts.length - 1].x, PT + cH);
+  ctx.lineTo(psiPts[0].x, PT + cH);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(212,168,39,0.06)';
+  ctx.fill();
+  ctx.restore();
+
+  // PSI line
+  ctx.save();
+  ctx.strokeStyle = C.yellow; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.beginPath(); smoothLine(ctx, psiPts); ctx.stroke();
+  ctx.restore();
+
+  // Anomaly line
+  const anomPts = entries.map((_, i) => ({ x: mX(i), y: mA(anomSeries[i]) }));
+  ctx.save();
+  ctx.strokeStyle = C.blue; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.beginPath(); smoothLine(ctx, anomPts); ctx.stroke();
+  ctx.restore();
+
+  ctx.restore(); // end clip
+
+  // X labels — batch numbers relative to full log
+  const step       = Math.max(1, Math.floor(n / 6));
+  const batchStart = S.entries.length - n;
+  ctx.fillStyle = C.muted; ctx.font = '9px "Fira Code"'; ctx.textAlign = 'center';
+  for (let i = 0; i < n; i += step) {
+    ctx.fillText(`B${batchStart + i + 1}`, mX(i), H - 3);
+  }
+
+  // Left Y labels (PSI)
+  ctx.textAlign = 'right';
+  for (let i = 1; i <= 4; i++) {
+    const v = psiMax * i / 4;
+    ctx.fillText(v.toFixed(2), PL - 5, PT + cH * (1 - i / 4) + 3.5);
+  }
+
+  // Right Y labels (anomaly %)
+  ctx.textAlign = 'left';
+  for (let i = 1; i <= 4; i++) {
+    const v = anomMax * i / 4;
+    ctx.fillText(v.toFixed(1) + '%', W - PR + 5, PT + cH * (1 - i / 4) + 3.5);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HEATMAP
+// ─────────────────────────────────────────────────────────────────────────────
+function ksColor(v) {
+  if (v < 0.05) return `rgba(74,138,84,${(0.35 + v * 2).toFixed(2)})`;
+  if (v < 0.1)  return `rgba(212,168,39,${(0.40 + (v - 0.05) * 4).toFixed(2)})`;
+  if (v < 0.2)  return `rgba(212,168,39,${(0.55 + (v - 0.1)  * 3).toFixed(2)})`;
+  return             `rgba(191,64,64,${Math.min(0.95, 0.50 + (v - 0.2) * 3).toFixed(2)})`;
+}
+
+function featName(k, names) {
+  if (names && names[parseInt(k)] !== undefined) return names[parseInt(k)];
+  return `feature_${k}`;
+}
+
+function renderHeatmap() {
+  const entries = S.entries.slice(-24);
+  const el      = document.getElementById('heatmap');
+  if (!entries.length || !el) return;
+
+  const latest = entries[entries.length - 1];
+  const fnames = latest.feature_names || null;
+
+  // Collect feature keys in stable order
+  const keys = [];
+  for (const e of entries)
+    for (const k of Object.keys(e.ks_results || {}))
+      if (!keys.includes(k)) keys.push(k);
+
+  const totalBatches = S.entries.length;
+  const startIdx     = totalBatches - entries.length;
+  const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
+  const colsTemplate = `110px repeat(${entries.length}, 1fr)`;
+
+  let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
+  html += '<div></div>';
+  batchLabels.forEach(l => { html += `<div class="hm-time-lbl">${l}</div>`; });
+  html += '</div>';
+
+  keys.forEach((k, ri) => {
+    const sel = ri === S.selFeature ? ' sel' : '';
+    const name = featName(k, fnames);
+    html += `<div class="hm-row${sel}" style="grid-template-columns:${colsTemplate};" onclick="selectFeature(${ri})">`;
+    html += `<div class="hm-name" title="${name}">${name}</div>`;
+    entries.forEach(e => {
+      const ks = e.ks_results?.[k]?.statistic || 0;
+      html += `<div class="hm-cell" style="background:${ksColor(ks)};" title="KS: ${ks.toFixed(3)}"></div>`;
+    });
+    html += '</div>';
+  });
+
+  const swatches = [[0.02,'stable'],[0.07,'warn'],[0.15,'drift'],[0.28,'alert']];
+  html += '<div class="hm-legend"><span>KS:</span>';
+  swatches.forEach(([v, l]) => {
+    html += `<span style="display:flex;align-items:center;gap:4px;">
+      <span class="hm-swatch" style="background:${ksColor(v)};"></span>${l}
+    </span>`;
+  });
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DISTRIBUTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Ensure 3 persistent distribution rows exist
+function ensureDistRows() {
+  const container = document.getElementById('dist');
+  if (container.querySelectorAll('.dist-row').length === 3) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const row = document.createElement('div');
+    row.className = 'dist-row';
+    row.id = `dist-row-${i}`;
+    const lbl = document.createElement('div');
+    lbl.className = 'dist-lbl';
+    lbl.id = `dist-lbl-${i}`;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'dist-canvas';
+    canvas.id = `dist-canvas-${i}`;
+    row.appendChild(lbl); row.appendChild(canvas);
+    container.appendChild(row);
+  }
+}
+
+function renderDistributions() {
+  ensureDistRows();
+
+  const latest = S.entries[S.entries.length - 1];
+  if (!latest) return;
+
+  const ksKeys = Object.keys(latest.ks_results || {});
+  if (!ksKeys.length) return;
+
+  const fnames   = latest.feature_names || null;
+  const selKey   = ksKeys[S.selFeature] ?? ksKeys[0];
+  const byKs     = [...ksKeys].sort((a, b) =>
+    (latest.ks_results[b]?.statistic || 0) - (latest.ks_results[a]?.statistic || 0)
+  );
+  const showKeys = [selKey, ...byKs.filter(k => k !== selKey)].slice(0, 3);
+
+  const currRaw = latest.feature_sample
+    ? latest.feature_sample.map(r => Array.isArray(r) ? r : [r])
+    : null;
+  const refRaw  = S.reference
+    ? S.reference.map(r => Array.isArray(r) ? r : [r])
+    : null;
+
+  showKeys.forEach((k, i) => {
+    const lbl    = document.getElementById(`dist-lbl-${i}`);
+    const canvas = document.getElementById(`dist-canvas-${i}`);
+    if (!lbl || !canvas) return;
+
+    const name   = featName(k, fnames);
+    const colIdx = parseInt(k);
+
+    lbl.textContent = name;
+    document.getElementById(`dist-row-${i}`).style.display = '';
+
+    const curr = currRaw
+      ? currRaw.map(r => r[colIdx]).filter(v => v != null && isFinite(v))
+      : [];
+    const ref  = refRaw
+      ? refRaw.map(r => r[colIdx]).filter(v => v != null && isFinite(v))
+      : [];
+
+    drawDist(canvas, curr, ref);
+  });
+
+  // Hide unused rows
+  for (let i = showKeys.length; i < 3; i++) {
+    const row = document.getElementById(`dist-row-${i}`);
+    if (row) row.style.display = 'none';
+  }
+}
+
+function drawDist(el, curr, ref) {
+  const { ctx, W, H } = initCanvas(el);
+  if (!curr.length) return;
+
+  // Independent bandwidths — better shape per dataset
+  const hCurr   = scotts(curr);
+  const hRef    = ref.length ? scotts(ref) : hCurr;
+  const currKde = kde(curr, hCurr);
+  const refKde  = ref.length ? kde(ref, hRef) : null;
+
+  // X range from actual data extremes (not KDE padding)
+  const allVals = [...curr, ...(ref.length ? ref : [])];
+  const dataMin = Math.min(...allVals);
+  const dataMax = Math.max(...allVals);
+  const span    = dataMax - dataMin || 1;
+  const xMin    = dataMin - span * 0.12;
+  const xMax    = dataMax + span * 0.12;
+
+  // Normalize both curves to peak=1 so shapes are visible even under heavy drift
+  const normPeak = ys => { const pk = Math.max(...ys) || 1; return ys.map(y => y / pk); };
+  const currYs = normPeak(currKde.ys);
+  const refYs  = refKde ? normPeak(refKde.ys) : null;
+  const yMax   = 1.15;
+
+  const PL = 2, PR = 2, PT = 4, PB = 8;
+  const cW = W - PL - PR, cH = H - PT - PB;
+
+  const mX = x => PL + ((x - xMin) / (xMax - xMin || 1)) * cW;
+  const mY = y => PT + cH - (y / yMax) * cH;
+
+  // Axis
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PL, PT + cH); ctx.lineTo(W - PR, PT + cH); ctx.stroke();
+
+  // Reference fill + stroke
+  if (refKde && refKde.xs.length) {
+    const pts = refKde.xs.map((x, i) => ({ x: mX(x), y: mY(refYs[i]) }));
+    ctx.save();
+    ctx.beginPath(); smoothLine(ctx, pts);
+    ctx.lineTo(pts[pts.length - 1].x, PT + cH);
+    ctx.lineTo(pts[0].x, PT + cH);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(50,50,44,0.55)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(86,86,78,0.7)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); smoothLine(ctx, pts); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Current fill + stroke
+  {
+    const pts = currKde.xs.map((x, i) => ({ x: mX(x), y: mY(currYs[i]) }));
+    ctx.save();
+    ctx.beginPath(); smoothLine(ctx, pts);
+    ctx.lineTo(pts[pts.length - 1].x, PT + cH);
+    ctx.lineTo(pts[0].x, PT + cH);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(212,168,39,0.1)'; ctx.fill();
+    ctx.strokeStyle = C.yellow; ctx.lineWidth = 1.5;
+    ctx.beginPath(); smoothLine(ctx, pts); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAT CARDS
+// ─────────────────────────────────────────────────────────────────────────────
+function renderCards() {
+  if (!S.entries.length) return;
+  const latest = S.entries[S.entries.length - 1];
+
+  const psi    = latest.psi_score    || 0;
+  const anom   = (latest.anomaly_rate || 0) * 100;
+  const ksVals = Object.values(latest.ks_results || {});
+  const ksMax  = ksVals.length ? Math.max(...ksVals.map(v => v.statistic || 0)) : 0;
+  const ndrift = ksVals.filter(v => v.drifted).length;
+
+  const baseAnom = S.entries.length > 10
+    ? S.entries.slice(0, 10).reduce((a, e) => a + (e.anomaly_rate || 0), 0) / 10 * 100
+    : null;
+
+  setCard('psi',  psi.toFixed(3),        psi  > 0.2 ? 'alert' : psi  > 0.1 ? 'warn' : '',
+          'threshold: 0.20');
+  setCard('ks',   ksMax.toFixed(3),      ksMax > 0.2 ? 'alert' : ksMax > 0.1 ? 'warn' : '',
+          `features drifted: ${ndrift}`);
+  setCard('anom', anom.toFixed(1) + '%', anom > 5 ? 'alert' : anom > 2 ? 'warn' : '',
+          baseAnom != null ? `baseline ~${baseAnom.toFixed(1)}%` : 'vs. baseline');
+  setCard('batch', (latest.n_samples || 0).toLocaleString(), '', '');
+}
+
+function setCard(id, val, level, sub) {
+  const v = document.getElementById(`cv-${id}`);
+  const s = document.getElementById(`cs-${id}`);
+  if (v) { v.textContent = val; v.className = 'card-value' + (level ? ` ${level}` : ''); }
+  if (s && sub) s.textContent = sub;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HEADER
+// ─────────────────────────────────────────────────────────────────────────────
+function renderHeader() {
+  if (!S.entries.length) return;
+  const latest = S.entries[S.entries.length - 1];
+
+  const badge = document.getElementById('h-badge');
+  if (latest.alert_triggered) {
+    badge.textContent = '● drift detected';
+    badge.className = 'badge badge-alert';
+  } else if (latest.drift_detected) {
+    badge.textContent = '● monitoring';
+    badge.className = 'badge badge-warn';
+  } else {
+    badge.textContent = 'stable';
+    badge.className = 'badge badge-stable';
+  }
+
+  const mockBadge = document.getElementById('h-mock');
+  if (mockBadge) mockBadge.style.display = S.isMock ? '' : 'none';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALERT LOG
+// ─────────────────────────────────────────────────────────────────────────────
+function renderAlerts() {
+  const alerts = S.entries
+    .filter(e => e.alert_triggered || e.drift_detected)
+    .slice(-20).reverse();
+  const panel = document.getElementById('alert-panel');
+  const body  = document.getElementById('alert-body');
+  if (!alerts.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+
+  body.innerHTML = alerts.map(e => {
+    const ksMax  = Math.max(0, ...Object.values(e.ks_results || {}).map(v => v.statistic || 0));
+    const ndrift = Object.values(e.ks_results || {}).filter(v => v.drifted).length;
+    const status = e.alert_triggered ? 'ALERT' : 'WARN';
+    const ts     = (e.timestamp || '').slice(0, 19).replace('T', ' ');
+    const psi    = (e.psi_score || 0).toFixed(3);
+    const pCol   = e.psi_score > 0.2 ? C.red : C.yellow;
+    const bCol   = status === 'ALERT' ? C.red  : C.yellow;
+    const bDim   = status === 'ALERT' ? C.rdim : C.ydim;
+    return `<tr>
+      <td style="color:${C.muted}">${ts}</td>
+      <td style="color:${pCol}">${psi}</td>
+      <td style="color:${C.text}">${ksMax.toFixed(3)}</td>
+      <td style="color:${C.text}">${ndrift}</td>
+      <td><span style="font-size:9px;letter-spacing:.08em;padding:2px 8px;border-radius:2px;border:1px solid ${bDim};color:${bCol};">${status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE SELECTION
+// ─────────────────────────────────────────────────────────────────────────────
+function selectFeature(i) {
+  S.selFeature = i;
+  renderHeatmap();
+  renderDistributions();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────────────────────
+function render() {
+  const has = S.entries.length > 0;
+  document.getElementById('main').style.display = has ? '' : 'none';
+  document.getElementById('empty').classList.toggle('show', !has);
+  if (!has) return;
+
+  renderHeader();
+  renderCards();
+  drawTimeline();
+  renderHeatmap();
+  renderDistributions();
+  renderAlerts();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFRESH LOOP
+// ─────────────────────────────────────────────────────────────────────────────
+async function refresh() {
+  const dot = document.getElementById('pulse');
+  dot.classList.add('on');
+  await fetchAll();
+  dot.classList.remove('on');
+  render();
+}
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+window.addEventListener('resize', () => {
+  drawTimeline();
+  document.querySelectorAll('.dist-canvas').forEach(c => {
+    const i = parseInt(c.id.split('-').pop());
+    const latest = S.entries[S.entries.length - 1];
+    if (!latest) return;
+    const keys    = Object.keys(latest.ks_results || {});
+    const selKey  = keys[S.selFeature] ?? keys[0];
+    const byKs    = [...keys].sort((a, b) =>
+      (latest.ks_results[b]?.statistic || 0) - (latest.ks_results[a]?.statistic || 0));
+    const showKeys = [selKey, ...byKs.filter(k => k !== selKey)].slice(0, 3);
+    const k = showKeys[i]; if (!k) return;
+    const col   = parseInt(k);
+    const currRaw = latest.feature_sample?.map(r => Array.isArray(r) ? r : [r]) || [];
+    const refRaw  = (S.reference || []).map(r => Array.isArray(r) ? r : [r]);
+    const curr = currRaw.map(r => r[col]).filter(v => v != null && isFinite(v));
+    const ref  = refRaw.map(r => r[col]).filter(v => v != null && isFinite(v));
+    drawDist(c, curr, ref);
+  });
+});
+</script>
+
+<footer id="dash-footer">
+  <span>Aitor Bazo 2026</span>
+</footer>
+</body>
+
+</html>

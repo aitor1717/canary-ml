@@ -45,14 +45,17 @@ def psi_score(reference: np.ndarray, current: np.ndarray, bins: int = 10) -> flo
         r = ref[:, i]
         c = cur[:, i]
 
-        # Build bin edges from reference distribution
-        breakpoints = np.linspace(r.min(), r.max(), bins + 1)
-        # Extend edges slightly so boundary values fall inside
-        breakpoints[0] -= 1e-9
-        breakpoints[-1] += 1e-9
+        # Quantile-based bins on reference — equal-count partitioning, handles skew
+        breaks = np.unique(np.percentile(r, np.linspace(0, 100, bins + 1)))
+        if len(breaks) < 3:
+            psi_values.append(0.0)   # constant feature, no drift measurable
+            continue
+        # Extend to cover any current values outside the reference range
+        breaks[0]  = min(breaks[0],  c.min()) - 1e-9
+        breaks[-1] = max(breaks[-1], c.max()) + 1e-9
 
-        ref_counts, _ = np.histogram(r, bins=breakpoints)
-        cur_counts, _ = np.histogram(c, bins=breakpoints)
+        ref_counts, _ = np.histogram(r, bins=breaks)
+        cur_counts, _ = np.histogram(c, bins=breaks)
 
         ref_pct = ref_counts / max(len(r), 1)
         cur_pct = cur_counts / max(len(c), 1)
@@ -97,9 +100,12 @@ def chi2_drift(reference: np.ndarray, current: np.ndarray) -> dict[str, dict[str
     return results
 
 
-def is_categorical(col: np.ndarray, threshold: int = 20) -> bool:
-    """Heuristic: treat a column as categorical if it has few unique values."""
-    return len(np.unique(col)) <= threshold
+def is_categorical(ref_col: np.ndarray, cur_col: np.ndarray | None = None, threshold: int = 20) -> bool:
+    """Heuristic: treat a column as categorical if it has few unique values across both splits."""
+    uniq = np.unique(ref_col)
+    if cur_col is not None:
+        uniq = np.union1d(uniq, np.unique(cur_col))
+    return len(uniq) <= threshold
 
 
 def detect_drift(
@@ -126,7 +132,7 @@ def detect_drift(
     col_map: dict[str, str] = {}  # col_idx -> 'ks' | 'chi2'
 
     for i in range(ref.shape[1]):
-        if is_categorical(ref[:, i]):
+        if is_categorical(ref[:, i], cur[:, i]):
             chi2_cols_ref.append(ref[:, i])
             chi2_cols_cur.append(cur[:, i])
             col_map[str(i)] = "chi2"

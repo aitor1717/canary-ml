@@ -5,6 +5,12 @@ import os
 from pathlib import Path
 from typing import Any
 
+try:
+    import fcntl as _fcntl
+    _HAS_FCNTL = True
+except ImportError:
+    _HAS_FCNTL = False  # Windows — no advisory locking, fall back silently
+
 
 class MonitorLog:
     """Append-only JSON-lines log stored at ``log_path/monitor.jsonl``."""
@@ -15,9 +21,15 @@ class MonitorLog:
         self._file = self._path / "monitor.jsonl"
 
     def append(self, entry: dict[str, Any]) -> None:
-        """Append one log entry (must be JSON-serialisable)."""
+        """Append one log entry (must be JSON-serialisable). Thread- and process-safe on Unix."""
         with self._file.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(entry, default=str) + "\n")
+            if _HAS_FCNTL:
+                _fcntl.flock(fh.fileno(), _fcntl.LOCK_EX)
+            try:
+                fh.write(json.dumps(entry, default=str) + "\n")
+            finally:
+                if _HAS_FCNTL:
+                    _fcntl.flock(fh.fileno(), _fcntl.LOCK_UN)
 
     def read_last(self, n: int = 100) -> list[dict[str, Any]]:
         """Return the last *n* log entries, oldest first."""

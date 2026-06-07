@@ -35,7 +35,7 @@ monitor.serve_dashboard(port=8501)
 - Data Drift Detection — KS test, PSI, chi-square per feature with configurable thresholds
 - Anomaly Detection — Isolation Forest and z-score ensemble on inputs and outputs
 - Zero Latency — monitoring is a side effect; inference path stays unchanged
-- Live Dashboard — Streamlit, ships with the package, no cloud account needed
+- Live Dashboard — zero-dep HTML/JS, ships with the package, no cloud account needed
 
 ## Why
 
@@ -43,13 +43,9 @@ Most ML monitoring tools require a database, a cloud account, or a separate depl
 
 The dashboard (`monitor.serve_dashboard()`) reads from that file and auto-refreshes every 5 seconds. You can run it on a laptop, in a Docker container, or on any machine with the package installed.
 
-## Dashboard
-
-![Dashboard](assets/dashboard.png)
-
 ## Roadmap
 
-### v0.2
+### v1.1
 - Label-free performance estimation: estimate model accuracy/F1 from confidence score distributions without ground truth labels, using confidence-based performance estimation (CBPE). Alerts when estimated performance degrades, not just when inputs shift.
 
 ## License

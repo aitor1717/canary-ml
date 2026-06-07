@@ -39,7 +39,6 @@
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
       padding: 18px 52px;
-      border-bottom: 1px solid var(--border);
       background: rgba(13,13,11,0.92);
       backdrop-filter: blur(16px);
     }
@@ -65,11 +64,10 @@
 
     /* HERO */
     .hero {
-      min-height: 100vh;
-      padding: 120px 52px 60px;
+      padding: 72px 52px 36px;
       display: grid;
       grid-template-columns: 5fr 7fr;
-      gap: 60px;
+      gap: 44px;
       align-items: center;
       max-width: 1440px;
       margin: 0 auto;
@@ -84,7 +82,7 @@
 
     .hero-eyebrow {
       font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--ydim); margin-bottom: 16px;
+      color: var(--ydim); margin-bottom: 10px;
     }
     h1 {
       font-family: 'Barlow Condensed', sans-serif;
@@ -92,11 +90,11 @@
       font-size: clamp(52px, 7vw, 100px);
       line-height: 1; letter-spacing: 0.04em;
       text-transform: uppercase; color: #d4d0be;
-      margin-bottom: 24px; white-space: nowrap;
+      margin-bottom: 16px; white-space: nowrap;
     }
     .hero-sub {
       font-size: 13px; font-weight: 300; color: var(--muted);
-      line-height: 1.7; margin-bottom: 36px; max-width: 340px;
+      line-height: 1.7; margin-bottom: 24px; max-width: 340px;
     }
     .install-row {
       display: flex; align-items: center;
@@ -156,7 +154,7 @@
       border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
       display: grid; grid-template-columns: repeat(3, 1fr);
     }
-    .stat-cell { padding: 24px 52px; border-right: 1px solid var(--border); }
+    .stat-cell { padding: 16px 52px; border-right: 1px solid var(--border); }
     .stat-cell:last-child { border-right: none; }
     .stat-num {
       font-family: 'Barlow Condensed', sans-serif; font-weight: 900;
@@ -171,7 +169,7 @@
       gap: 1px; background: var(--border);
       border-bottom: 1px solid var(--border);
     }
-    .feat { background: var(--bg); padding: 24px 52px; }
+    .feat { background: var(--bg); padding: 16px 52px; }
     .feat-name {
       font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
       font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase;
@@ -180,7 +178,7 @@
     .feat-desc { font-size: 11px; font-weight: 300; color: var(--muted); line-height: 1.6; }
 
     /* CODE */
-    .code-section { max-width: 1440px; margin: 0 auto; padding: 56px 52px; }
+    .code-section { max-width: 1440px; margin: 0 auto; padding: 36px 52px; }
     .code-panel { border: 1px solid var(--hi); border-radius: 6px; overflow: hidden; }
     .code-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -193,7 +191,7 @@
     .dot:nth-child(2) { background: #906e30; }
     .dot:nth-child(3) { background: #3a7040; }
     .code-fname { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; }
-    pre { padding: 26px; line-height: 1.85; font-size: 12.5px; overflow-x: auto; }
+    pre { padding: 20px 26px; line-height: 1.85; font-size: 12.5px; overflow-x: auto; }
 
     .cy  { color: var(--yellow); font-weight: 600; }
     .kw  { color: #f92672; }
@@ -204,7 +202,7 @@
 
     /* FOOTER */
     footer {
-      border-top: 1px solid var(--border); padding: 22px 52px;
+      border-top: 1px solid var(--border); padding: 14px 52px;
       display: flex; align-items: center; justify-content: space-between;
     }
     .ft { font-size: 11px; color: var(--muted); }
@@ -236,6 +234,21 @@
       footer { padding: 18px 20px; flex-direction: column; gap: 12px; text-align: center; }
       .viz-top { flex-wrap: wrap; gap: 8px; }
     }
+
+    @media (max-width: 500px) {
+      .hero { padding: 90px 16px 36px; }
+      .stats-bar { grid-template-columns: 1fr; }
+      .stat-cell { padding: 14px 20px; border-right: none; border-bottom: 1px solid var(--border); }
+      .stat-cell:last-child { border-bottom: none; }
+      .stat-num { font-size: 40px; }
+      .features-brief { grid-template-columns: 1fr; }
+      .feat { padding: 14px 20px; }
+      .install-row { max-width: 100%; }
+      pre { padding: 16px; font-size: 11.5px; }
+      .code-section { padding: 28px 16px; }
+      footer { padding: 14px 16px; }
+      .nav-right .nav-link { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -244,6 +257,7 @@
   <a class="nav-logo" href="#">canary</a>
   <div class="nav-right">
     <a class="nav-link" href="#code">quickstart</a>
+    <a class="nav-link" href="./demo.html">demo</a>
     <a class="nav-gh" href="https://github.com/aitor1717/canary-ml" target="_blank">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
@@ -255,9 +269,9 @@
 
 <section class="hero">
   <div class="hero-left">
-    <div class="hero-eyebrow">v0.1.0 · MIT · Python 3.9+</div>
+    <div class="hero-eyebrow">v1.0.0 · MIT · Python 3.9+</div>
     <h1>CANARY</h1>
-    <p class="hero-sub">Drift and anomaly detection for production ML models. Wrap your model. Nothing else changes.</p>
+    <p class="hero-sub">Drift and anomaly detection for production ML models. <span style="color:var(--yellow)">State of the art</span> performance in a wrapper, <span style="color:var(--yellow)">for free</span>.</p>
     <div class="install-row">
       <span class="prompt">$</span>
       <code id="icmd">pip install canary-ml</code>
@@ -268,7 +282,7 @@
   <div class="hero-right">
     <div class="viz-panel">
       <div class="viz-top">
-        <span class="viz-label">feature_importance_score · batch #2847</span>
+        <span class="viz-label">confidence_score · batch #2847</span>
         <div class="viz-indicators">
           <div class="indicator"><div class="indicator-dot baseline"></div>baseline</div>
           <div class="indicator"><div class="indicator-dot current"></div>current</div>
@@ -299,14 +313,14 @@
 <div class="stats-bar">
   <div class="stat-cell"><div class="stat-num">1</div><div class="stat-desc">line to wrap any sklearn or Keras model</div></div>
   <div class="stat-cell"><div class="stat-num">0</div><div class="stat-desc">infrastructure required — runs fully local</div></div>
-  <div class="stat-cell"><div class="stat-num">&lt;5'</div><div class="stat-desc">from install to live monitoring dashboard</div></div>
+  <div class="stat-cell"><div class="stat-num">&lt; 5'</div><div class="stat-desc">from install to live monitoring dashboard</div></div>
 </div>
 
 <div class="features-brief">
   <div class="feat"><div class="feat-name">Data Drift Detection</div><div class="feat-desc">KS test, PSI, chi-square per feature with configurable thresholds.</div></div>
-  <div class="feat"><div class="feat-name">Anomaly Detection</div><div class="feat-desc">Isolation Forest and z-score ensemble on inputs and outputs.</div></div>
+  <div class="feat"><div class="feat-name">Anomaly Detection</div><div class="feat-desc">Isolation Forest + z-score ensemble on inputs. KS test on prediction outputs.</div></div>
   <div class="feat"><div class="feat-name">Zero Latency</div><div class="feat-desc">Monitoring is a side effect. Your inference path stays unchanged.</div></div>
-  <div class="feat"><div class="feat-name">Live Dashboard</div><div class="feat-desc">Streamlit. Ships with the package. No cloud account needed.</div></div>
+  <div class="feat"><div class="feat-name">Live Dashboard</div><div class="feat-desc">Zero-dep HTML/JS dashboard. Ships with the package. No cloud account needed.</div></div>
 </div>
 
 <section class="code-section" id="code">
@@ -329,17 +343,16 @@
 predictions = <span class="id">monitor</span>.<span class="cy">predict</span>(X_new)
 
 report = <span class="id">monitor</span>.<span class="cy">get_report</span>()
-<span class="kw">print</span>(report.<span class="cy">summary</span>())
-<span class="cm"># DriftReport | psi=0.41 | features_drifted=3 | anomaly_rate=3.2% | ALERT</span>
+<span class="kw">print</span>(report.<span class="cy">psi_score</span>, report.<span class="cy">drift_detected</span>, report.<span class="cy">anomaly_rate</span>)
+<span class="cm"># 0.41  True  0.032</span>
 
 <span class="id">monitor</span>.<span class="cy">serve_dashboard</span>(port=<span class="nu">8501</span>)</code></pre>
   </div>
 </section>
 
 <footer>
-  <span class="ft">canary · MIT · <a href="https://github.com/aitor1717/canary-ml" target="_blank">github.com/aitor1717/canary-ml</a></span>
+  <span class="ft">Aitor Bazo 2026 · canary · MIT · <a href="https://github.com/aitor1717/canary-ml" target="_blank">github.com/aitor1717/canary-ml</a></span>
   <div style="display:flex;align-items:center;gap:14px;">
-    <span class="ft">Aitor Bazo 2026</span>
     <div class="social-icons">
       <!-- GitHub -->
       <a class="social-icon" href="https://github.com/aitor1717" target="_blank" aria-label="GitHub">
@@ -366,15 +379,14 @@ function doCopy() {
   });
 }
 
-// ── HISTOGRAM ANIMATION ──────────────────────────────────────────────────────
+// ── KDE CURVE ANIMATION ───────────────────────────────────────────────────────
 const canvas = document.getElementById('histCanvas');
 const ctx    = canvas.getContext('2d');
-const BINS   = 28;
 const CYCLE  = 9000;
+const N_PTS  = 120;
 
-function gauss(x, mean, std) {
-  return Math.exp(-0.5 * Math.pow((x - mean) / std, 2)) / (std * Math.sqrt(2 * Math.PI));
-}
+function lerp(a, b, t) { return a + (b - a) * t; }
+function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
 function getPhase(t) {
   if (t < 0.18) return { progress: 0, phase: 'stable' };
@@ -384,98 +396,143 @@ function getPhase(t) {
   return { progress: Math.max(0, r), phase: r > 0.25 ? 'drifting' : 'stable' };
 }
 
-function lerp(a, b, t) { return a + (b - a) * t; }
-function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+function gaussCurve(mean, std, xMin, xMax, n) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const x = xMin + (xMax - xMin) * i / n;
+    pts.push(Math.exp(-0.5 * ((x - mean) / std) ** 2));
+  }
+  return pts;
+}
 
-function barColor(ep, alpha) {
+// Catmull-Rom smooth line
+function smoothLine(ctx, pts) {
+  if (pts.length < 2) return;
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    ctx.bezierCurveTo(
+      p1.x + (p2.x - p0.x) * 0.25, p1.y + (p2.y - p0.y) * 0.25,
+      p2.x - (p3.x - p1.x) * 0.25, p2.y - (p3.y - p1.y) * 0.25,
+      p2.x, p2.y,
+    );
+  }
+}
+
+function curveColor(ep) {
   const r = Math.round(lerp(212, 191, ep));
   const g = Math.round(lerp(168,  64, ep));
   const b = Math.round(lerp( 39,  64, ep));
-  return `rgba(${r},${g},${b},${alpha})`;
+  return { stroke: `rgb(${r},${g},${b})`, fill: `rgba(${r},${g},${b},0.10)` };
 }
 
 function resize() {
-  const w = canvas.parentElement.getBoundingClientRect().width;
-  canvas.width  = w;
-  canvas.height = 200;
+  const dpr = window.devicePixelRatio || 1;
+  const w   = canvas.parentElement.getBoundingClientRect().width;
+  canvas.width  = w * dpr;
+  canvas.height = 200 * dpr;
+  canvas.style.width  = w + 'px';
+  canvas.style.height = '200px';
+  ctx.scale(dpr, dpr);
 }
 
+let lastDpr = 0;
+
 function draw(ts) {
-  resize();
-  const W = canvas.width, H = canvas.height;
-  const t = (ts % CYCLE) / CYCLE;
+  const dpr = window.devicePixelRatio || 1;
+  if (dpr !== lastDpr) { resize(); lastDpr = dpr; }
+
+  const W = parseFloat(canvas.style.width)  || canvas.width;
+  const H = parseFloat(canvas.style.height) || canvas.height;
+  const t  = (ts % CYCLE) / CYCLE;
   const { progress, phase } = getPhase(t);
   const ep = ease(progress);
 
   ctx.clearRect(0, 0, W, H);
 
+  // Grid lines
   ctx.strokeStyle = 'rgba(30,30,26,0.8)'; ctx.lineWidth = 1;
   for (let i = 1; i < 4; i++) {
-    const y = H * 0.1 + (H * 0.76 / 4) * i;
+    const y = H * 0.08 + (H * 0.76 / 4) * i;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 
-  const B_MEAN = 0.38, B_STD = 0.11;
-  const C_MEAN = lerp(0.38, 0.66, ep);
-  const C_STD  = lerp(0.11, 0.135, ep);
-
-  const PAD_L = 24, PAD_R = 24;
+  const PAD_L = 16, PAD_R = 16;
   const chartW = W - PAD_L - PAD_R;
   const chartH = H * 0.76;
-  const baseY  = H * 0.86;
-  const binW   = chartW / BINS;
+  const baseY  = H * 0.84;
+  const xMin   = 0, xMax = 1;
 
-  let maxB = 0, maxC = 0;
-  for (let i = 0; i < BINS; i++) {
-    const x = i / BINS + 0.5 / BINS;
-    maxB = Math.max(maxB, gauss(x, B_MEAN, B_STD));
-    maxC = Math.max(maxC, gauss(x, C_MEAN, C_STD));
-  }
+  const B_MEAN = 0.36, B_STD = 0.10;
+  const C_MEAN = lerp(0.36, 0.64, ep);
+  const C_STD  = lerp(0.10, 0.125, ep);
 
-  for (let i = 0; i < BINS; i++) {
-    const x  = i / BINS + 0.5 / BINS;
-    const bv = gauss(x, B_MEAN, B_STD) / maxB;
-    const bH = bv * chartH;
-    ctx.fillStyle = 'rgba(50,50,44,0.85)';
-    ctx.fillRect(PAD_L + i * binW + 1, baseY - bH, binW - 2, bH);
-  }
+  const mapX = x  => PAD_L + (x - xMin) / (xMax - xMin) * chartW;
+  const mapY = v  => baseY - v * chartH;
 
-  const alpha = lerp(0.55, 0.82, ep);
-  for (let i = 0; i < BINS; i++) {
-    const x  = i / BINS + 0.5 / BINS;
-    const cv = gauss(x, C_MEAN, C_STD) / maxC;
-    const cH = cv * chartH;
-    ctx.fillStyle = barColor(ep, alpha);
-    ctx.fillRect(PAD_L + i * binW + 1, baseY - cH, binW - 2, cH);
-  }
+  const bPts = gaussCurve(B_MEAN, B_STD, xMin, xMax, N_PTS);
+  const cPts = gaussCurve(C_MEAN, C_STD, xMin, xMax, N_PTS);
 
-  if (ep > 0.25 && ep < 0.95) {
-    const bPeak = PAD_L + B_MEAN * chartW;
-    const cPeak = PAD_L + C_MEAN * chartW;
-    const arrowY = H * 0.07;
-    const arrowA = Math.min(1, (ep - 0.25) * 3) * Math.min(1, (0.95 - ep) * 6);
-    const aColor = barColor(ep, arrowA * 0.55);
+  const bMax = Math.max(...bPts);
+  const cMax = Math.max(...cPts);
 
-    ctx.strokeStyle = aColor; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
-    ctx.beginPath(); ctx.moveTo(bPeak, arrowY); ctx.lineTo(cPeak, arrowY); ctx.stroke();
+  const bCanvas = bPts.map((v, i) => ({ x: mapX(xMin + (xMax - xMin) * i / N_PTS), y: mapY(v / bMax) }));
+  const cCanvas = cPts.map((v, i) => ({ x: mapX(xMin + (xMax - xMin) * i / N_PTS), y: mapY(v / cMax) }));
+
+  // Baseline fill
+  ctx.save();
+  ctx.beginPath(); smoothLine(ctx, bCanvas);
+  ctx.lineTo(bCanvas[bCanvas.length - 1].x, baseY);
+  ctx.lineTo(bCanvas[0].x, baseY); ctx.closePath();
+  ctx.fillStyle = 'rgba(50,50,44,0.6)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(86,86,78,0.75)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); smoothLine(ctx, bCanvas); ctx.stroke();
+  ctx.restore();
+
+  // Current fill
+  const { stroke, fill } = curveColor(ep);
+  ctx.save();
+  ctx.beginPath(); smoothLine(ctx, cCanvas);
+  ctx.lineTo(cCanvas[cCanvas.length - 1].x, baseY);
+  ctx.lineTo(cCanvas[0].x, baseY); ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = stroke; ctx.lineWidth = 1.75;
+  ctx.beginPath(); smoothLine(ctx, cCanvas); ctx.stroke();
+  ctx.restore();
+
+  // Shift arrow
+  if (ep > 0.22 && ep < 0.96) {
+    const bPx = mapX(B_MEAN), cPx = mapX(C_MEAN);
+    const arY  = H * 0.06;
+    const arA  = Math.min(1, (ep - 0.22) * 3.5) * Math.min(1, (0.96 - ep) * 8);
+    ctx.save();
+    ctx.globalAlpha = arA * 0.5;
+    ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(bPx, arY); ctx.lineTo(cPx, arY); ctx.stroke();
     ctx.setLineDash([]);
-
-    ctx.fillStyle = aColor;
+    ctx.fillStyle = stroke;
     ctx.beginPath();
-    ctx.moveTo(cPeak + 5, arrowY);
-    ctx.lineTo(cPeak - 3, arrowY - 4);
-    ctx.lineTo(cPeak - 3, arrowY + 4);
+    ctx.moveTo(cPx + 5, arY);
+    ctx.lineTo(cPx - 3, arY - 4);
+    ctx.lineTo(cPx - 3, arY + 4);
     ctx.closePath(); ctx.fill();
+    ctx.restore();
   }
 
+  // Baseline
   ctx.strokeStyle = 'rgba(42,42,36,1)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(PAD_L, baseY + 1); ctx.lineTo(W - PAD_R, baseY + 1); ctx.stroke();
 
+  // X labels
   ctx.fillStyle = 'rgba(86,86,78,1)'; ctx.font = '9px "Fira Code"'; ctx.textAlign = 'center';
   ['0.0','0.25','0.50','0.75','1.0'].forEach((l, i) => {
     ctx.fillText(l, PAD_L + (i / 4) * chartW, baseY + 14);
   });
 
+  // Stat cards
   const psi  = lerp(0.02, 0.42, ep);
   const ks   = lerp(0.04, 0.38, ep);
   const anom = lerp(0.8,  4.6,  ep);
@@ -493,13 +550,13 @@ function draw(ts) {
   pill.className   = 'viz-status-pill' + (phase === 'alert' ? ' alert' : phase === 'drifting' ? ' drifting' : '');
 
   const dot = document.querySelector('.indicator-dot.current');
-  if (dot) dot.style.background = barColor(ep, 1);
+  if (dot) dot.style.background = stroke;
 
   requestAnimationFrame(draw);
 }
 
 window.addEventListener('resize', resize);
-resize();
+resize(); lastDpr = window.devicePixelRatio || 1;
 requestAnimationFrame(draw);
 </script>
 </body>

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import json
 import os
 import random
-import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
+
+from scipy import stats as _scipy_stats
 
 from canary_ml.alerts import check_alert, format_alert
 from canary_ml.anomaly import AnomalyDetector
@@ -34,6 +36,7 @@ class ModelMonitor:
         anomaly_contamination: float = 0.05,
         log_path: str | os.PathLike = "./canary_logs",
         verbose: bool = True,
+        on_alert: Callable[[DriftReport], None] | None = None,
     ) -> None:
         self._model = model
         self._reference = np.asarray(reference_data, dtype=float)
@@ -43,6 +46,7 @@ class ModelMonitor:
         self._feature_names = feature_names
         self._alert_threshold = alert_threshold
         self._verbose = verbose
+        self._on_alert = on_alert
         self._log_path = Path(log_path)
         self._log = MonitorLog(log_path)
         self._report: DriftReport | None = None
@@ -50,13 +54,18 @@ class ModelMonitor:
         self._detector = AnomalyDetector(contamination=anomaly_contamination)
         self._detector.fit(self._reference)
 
+        # Capture reference output distribution for output drift detection.
+        self._reference_outputs: np.ndarray | None = _safe_predict(model, self._reference)
+
+        self._save_reference_sample()
+
     # ── public API ────────────────────────────────────────────────────────────
 
     def predict(self, X: Any) -> np.ndarray:
         """Run model prediction. Monitoring is a non-blocking side effect."""
         result = self._model.predict(X)
         try:
-            self._monitor(X)
+            self._monitor(X, result)
         except Exception as exc:  # noqa: BLE001
             self._log.append({"error": str(exc), "timestamp": _now()})
         return result
@@ -65,7 +74,7 @@ class ModelMonitor:
         """Passthrough to model.predict_proba if supported."""
         result = getattr(self._model, "predict_proba")(X)
         try:
-            self._monitor(X)
+            self._monitor(X, result)
         except Exception as exc:  # noqa: BLE001
             self._log.append({"error": str(exc), "timestamp": _now()})
         return result
@@ -84,31 +93,36 @@ class ModelMonitor:
         if self._reference.ndim == 1:
             self._reference = self._reference.reshape(-1, 1)
         self._detector.fit(self._reference)
+        self._reference_outputs = _safe_predict(self._model, self._reference)
+        self._save_reference_sample()
 
     def serve_dashboard(self, port: int = 8501) -> None:
-        """Launch the Streamlit dashboard in a background subprocess."""
-        dashboard = Path(__file__).parent.parent / "dashboard_app.py"
-        env = os.environ.copy()
-        env["CANARY_LOG_PATH"] = str(self._log_path)
-        streamlit_bin = Path(__file__).parent.parent / ".venv" / "bin" / "streamlit"
-        if not streamlit_bin.exists():
-            streamlit_bin = "streamlit"
-        subprocess.Popen(
-            [str(streamlit_bin), "run", str(dashboard), "--server.port", str(port)],
-            env=env,
-        )
+        """Launch the canary dashboard server in a background thread."""
+        from canary_ml import server as _server
+        _server.start(self._log_path, port=port)
         from rich.console import Console
         Console().print(f"[bold yellow]canary[/bold yellow] dashboard → http://localhost:{port}")
 
     # ── internals ─────────────────────────────────────────────────────────────
 
-    def _monitor(self, X: Any) -> None:
+    def _monitor(self, X: Any, outputs: Any) -> None:
         arr = np.asarray(X, dtype=float)
         if arr.ndim == 1:
             arr = arr.reshape(-1, 1)
 
         anomaly_result = self._detector.score(arr)
         psi, ks_results = detect_drift(self._reference, arr)
+
+        # Output distribution drift — always KS so the statistic is bounded [0,1]
+        output_ks: dict[str, Any] | None = None
+        if self._reference_outputs is not None:
+            try:
+                out_arr = np.asarray(outputs, dtype=float).ravel()
+                ref_out = self._reference_outputs.ravel()
+                stat, p = _scipy_stats.ks_2samp(ref_out, out_arr)
+                output_ks = {"statistic": float(stat), "p_value": float(p), "drifted": bool(p < 0.05)}
+            except Exception:  # noqa: BLE001
+                pass
 
         drift_detected = any(v.get("drifted") for v in ks_results.values())
         alert_triggered = check_alert(
@@ -119,7 +133,8 @@ class ModelMonitor:
                 ks_results=ks_results,
                 anomaly_rate=anomaly_result["anomaly_rate"],
                 drift_detected=drift_detected,
-                alert_triggered=False,  # placeholder for threshold check
+                alert_triggered=False,
+                output_ks=output_ks,
             ),
             self._alert_threshold,
         )
@@ -132,6 +147,7 @@ class ModelMonitor:
             anomaly_rate=anomaly_result["anomaly_rate"],
             drift_detected=drift_detected,
             alert_triggered=alert_triggered,
+            output_ks=output_ks,
         )
         self._report = report
 
@@ -141,10 +157,33 @@ class ModelMonitor:
 
         entry = report.to_dict()
         entry["feature_sample"] = sample_rows
+        entry["feature_names"]  = self._feature_names
         self._log.append(entry)
+
+        if alert_triggered and self._on_alert is not None:
+            try:
+                self._on_alert(report)
+            except Exception:  # noqa: BLE001
+                pass
 
         if self._verbose and (report.drift_detected or report.alert_triggered):
             format_alert(report)
+
+    def _save_reference_sample(self) -> None:
+        self._log_path.mkdir(parents=True, exist_ok=True)
+        ref = self._reference
+        sample = ref.tolist() if len(ref) <= 500 else random.sample(ref.tolist(), 500)
+        ref_file = self._log_path / "reference.json"
+        ref_file.write_text(json.dumps(sample))
+
+
+def _safe_predict(model: Any, X: np.ndarray) -> np.ndarray | None:
+    """Run model.predict on X without raising — returns None on failure."""
+    try:
+        sample = X if len(X) <= 500 else X[np.random.choice(len(X), 500, replace=False)]
+        return np.asarray(model.predict(sample), dtype=float)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _now() -> str:

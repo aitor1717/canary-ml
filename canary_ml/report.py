@@ -15,6 +15,7 @@ class DriftReport:
     anomaly_rate: float
     drift_detected: bool
     alert_triggered: bool
+    output_ks: dict[str, Any] | None = None
 
     def summary(self) -> str:
         """One-line human-readable summary."""
@@ -29,7 +30,7 @@ class DriftReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialisable dict (suitable for JSON logging)."""
-        return {
+        d: dict[str, Any] = {
             "timestamp": self.timestamp,
             "n_samples": self.n_samples,
             "psi_score": self.psi_score,
@@ -38,3 +39,6 @@ class DriftReport:
             "drift_detected": self.drift_detected,
             "alert_triggered": self.alert_triggered,
         }
+        if self.output_ks is not None:
+            d["output_ks"] = self.output_ks
+        return d
