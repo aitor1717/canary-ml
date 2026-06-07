@@ -7,7 +7,7 @@ name = "canary-ml"
 version = "1.0.0"
 description = "Lightweight drift and anomaly monitoring for production ML models."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.24",
