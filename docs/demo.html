@@ -119,8 +119,9 @@
       display: grid; grid-template-columns: 1fr;
       gap: 18px; margin-bottom: 18px;
     }
-    #heatmap { overflow-x: auto; }
-    #bottom .panel { margin-bottom: 0; }
+    #bottom .panel { margin-bottom: 0; min-width: 0; overflow: hidden; }
+    #heatmap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .dist-canvas { max-width: 100%; }
 
     /* ── HEATMAP ─────────────────────────────────────────────────────────── */
     .hm-time-row { display: grid; gap: 2px; margin-bottom: 5px; }
@@ -644,7 +645,7 @@ function renderHeatmap() {
   const totalBatches = S.entries.length;
   const startIdx     = totalBatches - entries.length;
   const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
-  const colsTemplate = `110px repeat(${entries.length}, minmax(22px, 1fr))`;
+  const colsTemplate = `110px repeat(${entries.length}, 28px)`;
 
   let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
   html += '<div></div>';
