@@ -459,11 +459,10 @@ async function fetchAll() {
 // ─────────────────────────────────────────────────────────────────────────────
 function initCanvas(el) {
   const dpr  = window.devicePixelRatio || 1;
-  const W    = el.clientWidth  || el.parentElement.clientWidth || 400;
+  const W    = el.getBoundingClientRect().width || el.parentElement?.getBoundingClientRect().width || 400;
   const H    = el.clientHeight || 160;
-  el.width   = W * dpr;
-  el.height  = H * dpr;
-  el.style.width  = W + 'px';
+  el.width   = Math.round(W * dpr);
+  el.height  = Math.round(H * dpr);
   el.style.height = H + 'px';
   const ctx  = el.getContext('2d');
   ctx.scale(dpr, dpr);
@@ -645,7 +644,7 @@ function renderHeatmap() {
   const totalBatches = S.entries.length;
   const startIdx     = totalBatches - entries.length;
   const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
-  const colsTemplate = `110px repeat(${entries.length}, 1fr)`;
+  const colsTemplate = `110px repeat(${entries.length}, minmax(22px, 1fr))`;
 
   let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
   html += '<div></div>';
