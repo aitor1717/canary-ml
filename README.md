@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/canary-ml)](https://pypi.org/project/canary-ml/)
 [![Python](https://img.shields.io/pypi/pyversions/canary-ml)](https://pypi.org/project/canary-ml/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-32%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-44%20passing-brightgreen)](tests/)
 
 One line wraps your model. Every `.predict()` call logs drift metrics, detects anomalies, and can fire an alert — without adding latency or requiring any infrastructure.
 
@@ -128,7 +128,8 @@ python -m canary_ml.server ./canary_logs 8501
 ModelMonitor(
     model,                      # sklearn-compatible model with .predict()
     reference_data,             # np.ndarray or pd.DataFrame, shape (n, features)
-    alert_threshold=0.2,        # PSI threshold for alert
+    alert_threshold=0.2,        # PSI threshold for drift alert
+    performance_threshold=0.05, # accuracy drop (pp) below reference that fires a perf alert
     log_path="./canary_logs",   # directory for monitor.jsonl and reference.json
     verbose=False,              # print rich alert panels on alert
     on_alert=None,              # callable(DriftReport) fired on alert
@@ -151,6 +152,10 @@ ModelMonitor(
 | `features_drifted` | `int` | Count of features with KS p < 0.05 |
 | `anomaly_rate` | `float` | Fraction of samples flagged as anomalies |
 | `alert` | `bool` | `True` if drift_detected or anomaly_rate > 0.05 |
+| `estimated_accuracy` | `float \| None` | CBPE estimate; `None` if model has no `predict_proba` |
+| `reference_accuracy` | `float \| None` | CBPE estimate on reference data (set at init) |
+| `performance_delta` | `float \| None` | `estimated_accuracy − reference_accuracy` |
+| `performance_alert` | `bool` | `True` if delta < −performance_threshold |
 | `timestamp` | `str` | ISO 8601 |
 | `.summary()` | `str` | Human-readable one-liner |
 
@@ -180,7 +185,7 @@ ModelMonitor(
 
 ```bash
 pip install -e ".[dev]"
-pytest                        # 32 tests
+pytest                        # 44 tests
 pytest --cov=canary_ml        # with coverage
 ```
 

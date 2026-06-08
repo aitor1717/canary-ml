@@ -121,7 +121,7 @@
       gap: 18px; margin-bottom: 18px;
     }
     #bottom .panel { margin-bottom: 0; min-width: 0; overflow: hidden; }
-    #heatmap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #heatmap { overflow: visible; }
     .dist-canvas { max-width: 100%; }
 
     /* ── HEATMAP ─────────────────────────────────────────────────────────── */
@@ -279,7 +279,7 @@
       <span class="panel-title">Drift Timeline · last 30 batches</span>
       <div class="panel-legend">
         <span style="color:var(--yellow);">── PSI score</span>
-        <span style="color:var(--violet);">── anomaly %</span>
+        <span style="color:#6e6e62;">── anomaly %</span>
       </div>
     </div>
     <canvas id="timeline"></canvas>
@@ -290,7 +290,8 @@
     <div class="panel-hdr">
       <span class="panel-title">Performance Estimate · CBPE</span>
       <div class="panel-legend">
-        <span style="color:var(--green);">── est. accuracy</span>
+        <span style="color:var(--green);">▌ above baseline</span>
+        <span style="color:var(--red);">▌ below alert</span>
         <span style="color:var(--muted);">- - reference</span>
       </div>
     </div>
@@ -595,7 +596,7 @@ function drawTimeline() {
   ctx.lineTo(psiPts[psiPts.length - 1].x, PT + cH);
   ctx.lineTo(psiPts[0].x, PT + cH);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(212,168,39,0.06)';
+  ctx.fillStyle = 'rgba(212,168,39,0.14)';
   ctx.fill();
   ctx.restore();
 
@@ -608,7 +609,7 @@ function drawTimeline() {
   // Anomaly line
   const anomPts = entries.map((_, i) => ({ x: mX(i), y: mA(anomSeries[i]) }));
   ctx.save();
-  ctx.strokeStyle = C.violet; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#6e6e62'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
   ctx.beginPath(); smoothLine(ctx, anomPts); ctx.stroke();
   ctx.restore();
 
@@ -671,7 +672,7 @@ function renderHeatmap() {
   const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
   const nameW   = 110;
   const panelW  = el.parentElement?.getBoundingClientRect().width || 600;
-  const cellW   = Math.max(28, Math.floor((panelW - nameW - 40) / entries.length));
+  const cellW   = Math.max(8, Math.floor((panelW - nameW - 40) / entries.length));
   const colsTemplate = `${nameW}px repeat(${entries.length}, ${cellW}px)`;
 
   let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
@@ -860,8 +861,9 @@ function renderPerformance() {
   const cW = W - PL - PR, cH = H - PT - PB;
 
   const vals = entries.map(e => e.estimated_accuracy).filter(v => v != null);
-  const yMin = Math.max(0, Math.min(...vals) - 0.03);
-  const yMax = Math.min(1, Math.max(...vals) + 0.03);
+  const allVals = refAcc != null ? [...vals, refAcc] : vals;
+  const yMin = Math.max(0, Math.min(...allVals) - 0.03);
+  const yMax = Math.min(1, Math.max(...allVals) + 0.03);
   const span = yMax - yMin || 0.1;
 
   const mX = i => PL + (i / Math.max(entries.length - 1, 1)) * cW;
@@ -875,42 +877,37 @@ function renderPerformance() {
     ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke();
   }
 
+  const refY = refAcc != null ? mY(refAcc) : PT + cH;
+
   if (refAcc != null) {
     const alertLineY = mY(refAcc - threshold);
     const bottomY    = PT + cH;
     if (alertLineY < bottomY) {
-      ctx.fillStyle = 'rgba(191,64,64,0.06)';
+      ctx.fillStyle = 'rgba(191,64,64,0.07)';
       ctx.fillRect(PL, Math.max(PT, alertLineY), cW, bottomY - Math.max(PT, alertLineY));
     }
     ctx.save();
     ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(PL, mY(refAcc)); ctx.lineTo(W - PR, mY(refAcc)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PL, refY); ctx.lineTo(W - PR, refY); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
   }
 
-  const pts = entries
-    .map((e, i) => e.estimated_accuracy != null ? { x: mX(i), y: mY(e.estimated_accuracy) } : null)
-    .filter(Boolean);
-
-  if (pts.length > 1) {
-    const latest = entries[entries.length - 1];
-    const delta  = refAcc != null && latest.estimated_accuracy != null
-      ? latest.estimated_accuracy - refAcc : 0;
-    const col  = delta < -threshold ? C.red : delta < -threshold / 2 ? C.yellow : C.green;
-    const fill = delta < -threshold ? 'rgba(191,64,64,0.08)'
-               : delta < -threshold / 2 ? 'rgba(212,168,39,0.08)'
-               : 'rgba(74,138,84,0.08)';
-
-    ctx.save();
-    ctx.beginPath(); smoothLine(ctx, pts);
-    ctx.lineTo(pts[pts.length - 1].x, PT + cH);
-    ctx.lineTo(pts[0].x, PT + cH); ctx.closePath();
-    ctx.fillStyle = fill; ctx.fill(); ctx.restore();
-
-    ctx.save();
-    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
-    ctx.beginPath(); smoothLine(ctx, pts); ctx.stroke(); ctx.restore();
-  }
+  const barW = Math.max(2, Math.floor(cW / entries.length) - 2);
+  entries.forEach((e, i) => {
+    if (e.estimated_accuracy == null) return;
+    const v      = e.estimated_accuracy;
+    const x      = mX(i);
+    const valY   = mY(v);
+    const barTop = Math.min(valY, refY);
+    const barBot = Math.max(valY, refY);
+    const barH   = Math.max(1, barBot - barTop);
+    const delta  = refAcc != null ? v - refAcc : 0;
+    const col    = delta < -threshold          ? 'rgba(191,64,64,0.78)'
+                 : delta < -(threshold / 2)    ? 'rgba(212,168,39,0.78)'
+                 : 'rgba(74,138,84,0.78)';
+    ctx.fillStyle = col;
+    ctx.fillRect(Math.round(x - barW / 2), barTop, barW, barH);
+  });
 
   ctx.fillStyle = C.muted; ctx.font = '9px "Fira Code"'; ctx.textAlign = 'right';
   for (let i = 0; i <= 3; i++) {
