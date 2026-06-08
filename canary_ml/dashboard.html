@@ -398,7 +398,7 @@ function makeMockData() {
   };
 
   // 24 batches — stable (B1–B8) → ramp (B9–B13) → peak (B14–B17) → recovery (B18–B22) → stable (B23–B24)
-  const N_BATCHES = 24, N_SAMPLES = 60, N_FEAT = 3;
+  const N_BATCHES = 48, N_SAMPLES = 60, N_FEAT = 3;
   const FEAT_NAMES = ['input_score', 'confidence', 'request_time'];
   const REF_MU = [0.42, 0.71, 130], REF_SD = [0.12, 0.09, 18];
   // Per-feature drift lags (input_score first, request_time lags behind)
@@ -920,7 +920,7 @@ function renderPerformance() {
 
   // Bars — grow from bottom toward reference line, all green
   const slotW = cW / Math.max(entries.length, 1);
-  const barW  = Math.max(2, Math.round(slotW * 0.45));
+  const barW  = Math.max(2, Math.round(slotW * 0.65));
   const botY  = PT + cH;
   entries.forEach((e, i) => {
     if (e.estimated_accuracy == null) return;

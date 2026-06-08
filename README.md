@@ -26,14 +26,14 @@ Most monitoring tools need a sidecar process, a managed database, or a cloud acc
 
 | | canary-ml | Evidently | NannyML | WhyLabs |
 |---|---|---|---|---|
-| Zero infrastructure | ✅ | ✅ | ✅ | Cloud |
-| Single-line wrap | ✅ | ❌ | ❌ | ❌ |
-| Ships own dashboard | ✅ | Report files | ✅ | Cloud |
-| PSI + KS + chi² | ✅ | ✅ | ✅ | ✅ |
-| Anomaly detection | ✅ | ❌ | ❌ | ❌ |
-| CBPE (label-free perf est.) | ✅ | ❌ | ✅ | ❌ |
-| on_alert callback | ✅ | ❌ | ❌ | ❌ |
-| Python-only install | ✅ | ✅ | ✅ | Agent |
+| Zero infrastructure | yes | yes | yes | Cloud |
+| Single-line wrap | yes | no | no | no |
+| Ships own dashboard | yes | Report files | yes | Cloud |
+| PSI + KS + chi² | yes | yes | yes | yes |
+| Anomaly detection | yes | no | no | no |
+| CBPE (label-free perf est.) | yes | no | yes | no |
+| on_alert callback | yes | no | no | no |
+| Python-only install | yes | yes | yes | Agent |
 
 ---
 

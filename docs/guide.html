@@ -98,7 +98,7 @@
     .section { margin-bottom: 72px; }
     .section-eyebrow {
       font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--ydim); margin-bottom: 10px;
+      color: var(--yellow); margin-bottom: 10px;
     }
     h2 {
       font-family: 'Barlow Condensed', sans-serif;
@@ -673,7 +673,7 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <pre><code><span class="kw">def</span> <span class="id">notify</span>(report):
     <span class="cm"># report is a DriftReport with all metrics attached</span>
     requests.post(<span class="st">"https://hooks.slack.com/..."</span>, json={
-        <span class="st">"text"</span>: <span class="st">f"🐦 Drift alert: PSI={report.psi_score:.2f}, "</span>
+        <span class="st">"text"</span>: <span class="st">f"Drift alert: PSI={report.psi_score:.2f}, "</span>
                  <span class="st">f"{report.features_drifted} features drifted"</span>
     })
 
