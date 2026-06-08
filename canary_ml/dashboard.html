@@ -120,7 +120,7 @@
       display: grid; grid-template-columns: 1fr;
       gap: 18px; margin-bottom: 18px;
     }
-    #bottom .panel { margin-bottom: 0; min-width: 0; overflow: hidden; }
+    #bottom .panel { margin-bottom: 0; min-width: 0; }
     #heatmap { overflow: visible; }
     .dist-canvas { max-width: 100%; }
 
@@ -290,8 +290,6 @@
     <div class="panel-hdr">
       <span class="panel-title">Performance Estimate · CBPE</span>
       <div class="panel-legend">
-        <span style="color:var(--green);">▌ above baseline</span>
-        <span style="color:var(--red);">▌ below alert</span>
         <span style="color:var(--muted);">- - reference</span>
       </div>
     </div>
@@ -521,6 +519,22 @@ function smoothLine(ctx, pts) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Rounded-top rectangle (bars that grow upward)
+function fillRoundedTop(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // KDE
 // ─────────────────────────────────────────────────────────────────────────────
 function scotts(data) {
@@ -680,7 +694,8 @@ function renderHeatmap() {
   const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
   const nameW   = 110;
   const panelW  = el.parentElement?.getBoundingClientRect().width || 600;
-  const cellW   = Math.max(8, Math.floor((panelW - nameW - 40) / entries.length));
+  const gapPx   = entries.length * 2;
+  const cellW   = Math.max(8, Math.floor((panelW - nameW - 40 - gapPx) / entries.length));
   const colsTemplate = `${nameW}px repeat(${entries.length}, ${cellW}px)`;
 
   let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
@@ -811,7 +826,7 @@ function drawDist(el, curr, ref) {
   const refYs  = refKde ? normPeak(refKde.ys) : null;
   const yMax   = 1.15;
 
-  const PL = 2, PR = 2, PT = 4, PB = 8;
+  const PL = 38, PR = 10, PT = 4, PB = 8;
   const cW = W - PL - PR, cH = H - PT - PB;
 
   const mX = x => PL + ((x - xMin) / (xMax - xMin || 1)) * cW;
@@ -903,22 +918,19 @@ function renderPerformance() {
     ctx.setLineDash([]); ctx.restore();
   }
 
-  // Bars — from reference line to each value
-  const barW = Math.max(2, Math.floor(cW / entries.length) - 2);
+  // Bars — grow from bottom toward reference line, all green
+  const slotW = cW / Math.max(entries.length, 1);
+  const barW  = Math.max(4, Math.round(slotW * 0.72));
+  const botY  = PT + cH;
   entries.forEach((e, i) => {
     if (e.estimated_accuracy == null) return;
-    const v      = e.estimated_accuracy;
-    const x      = mX(i);
-    const valY   = mY(v);
-    const barTop = Math.min(valY, refY);
-    const barBot = Math.max(valY, refY);
-    const barH   = Math.max(1, barBot - barTop);
-    const delta  = refAcc != null ? v - refAcc : 0;
-    const col    = delta < -threshold          ? 'rgba(191,64,64,0.78)'
-                 : delta < -(threshold / 2)    ? 'rgba(212,168,39,0.78)'
-                 : 'rgba(74,138,84,0.78)';
-    ctx.fillStyle = col;
-    ctx.fillRect(Math.round(x - barW / 2), barTop, barW, barH);
+    const v    = e.estimated_accuracy;
+    const x    = mX(i);
+    const topY = mY(v);
+    const h    = botY - topY;
+    if (h <= 0) return;
+    ctx.fillStyle = 'rgba(74,138,84,0.82)';
+    fillRoundedTop(ctx, Math.round(x - barW / 2), topY, barW, h, 2);
   });
 
   // Y labels
