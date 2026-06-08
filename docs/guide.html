@@ -333,7 +333,8 @@
         <tr><th>Parameter</th><th>Default</th><th>What it controls</th></tr>
         <tr><td><code>model</code></td><td>required</td><td>Any object with a <code>.predict()</code> method</td></tr>
         <tr><td><code>reference_data</code></td><td>required</td><td>Your training or validation data — the "normal" baseline</td></tr>
-        <tr><td><code>alert_threshold</code></td><td><code>0.2</code></td><td>PSI score above which an alert fires</td></tr>
+        <tr><td><code>alert_threshold</code></td><td><code>0.2</code></td><td>PSI score above which a drift alert fires</td></tr>
+        <tr><td><code>performance_threshold</code></td><td><code>0.05</code></td><td>Accuracy drop (percentage points) below reference that fires a performance alert. Requires <code>predict_proba</code>.</td></tr>
         <tr><td><code>log_path</code></td><td><code>"./canary_logs"</code></td><td>Directory for <code>monitor.jsonl</code> and <code>reference.json</code></td></tr>
         <tr><td><code>verbose</code></td><td><code>False</code></td><td>Print a rich alert panel to stdout when an alert fires</td></tr>
         <tr><td><code>on_alert</code></td><td><code>None</code></td><td>Callback function called with the <code>DriftReport</code> on alert</td></tr>

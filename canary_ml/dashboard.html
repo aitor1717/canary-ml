@@ -60,7 +60,7 @@
     .badge-alert  { color: var(--red);    border-color: var(--rdim); }
     .badge-warn   { color: var(--yellow); border-color: var(--ydim); }
     .badge-stable { color: var(--muted);  border-color: var(--border); }
-    .badge-mock   { color: var(--violet);   border-color: #5a4a7a; }
+    .badge-mock   { color: #6e6e62; border-color: var(--borderHi); }
     .h-right { display: flex; align-items: center; }
 
     .pulse {
@@ -397,7 +397,8 @@ function makeMockData() {
     return mu + sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   };
 
-  // 24 batches — stable (B1–B8) → ramp (B9–B13) → peak (B14–B17) → recovery (B18–B22) → stable (B23–B24)
+  // 48 batches — long stable (B1–B20) → ramp (B21–B32) → peak (B33–B38) → recovery (B39–B48)
+  // Drift event sits in the last 30 so timeline and heatmap show it in the demo
   const N_BATCHES = 48, N_SAMPLES = 60, N_FEAT = 3;
   const FEAT_NAMES = ['input_score', 'confidence', 'request_time'];
   const REF_MU = [0.42, 0.71, 130], REF_SD = [0.12, 0.09, 18];
@@ -406,10 +407,10 @@ function makeMockData() {
   const FEAT_SCALE = [0.32, 0.20, 28];   // how far each feature shifts at peak
 
   function driftEnvelope(b) {
-    if (b < 6)  return 0;
-    if (b < 13) return ((b - 6) / 7) ** 1.5;
-    if (b < 17) return 1;
-    return Math.max(0.05, 1 - ((b - 16) / 6) ** 1.5);
+    if (b < 20) return 0;
+    if (b < 33) return ((b - 20) / 13) ** 1.5;
+    if (b < 39) return 1;
+    return Math.max(0.04, 1 - ((b - 38) / 9) ** 1.5);
   }
 
   const reference = Array.from({ length: 300 }, () =>
@@ -571,7 +572,7 @@ function drawTimeline() {
   if (!entries.length) return;
 
   const { ctx, W, H } = initCanvas(el);
-  const PL = 44, PR = 44, PT = 10, PB = 26;
+  const PL = 44, PR = 10, PT = 10, PB = 26;
   const cW = W - PL - PR, cH = H - PT - PB;
 
   const psiSeries  = entries.map(e => e.psi_score    || 0);
@@ -652,11 +653,11 @@ function drawTimeline() {
     ctx.fillText(v.toFixed(2), PL - 5, PT + cH * (1 - i / 4) + 3.5);
   }
 
-  // Right Y labels (anomaly %)
-  ctx.textAlign = 'left';
+  // Right Y labels (anomaly %) — drawn inside chart, right-aligned
+  ctx.textAlign = 'right';
   for (let i = 1; i <= 4; i++) {
     const v = anomMax * i / 4;
-    ctx.fillText(v.toFixed(1) + '%', W - PR + 5, PT + cH * (1 - i / 4) + 3.5);
+    ctx.fillText(v.toFixed(1) + '%', W - PR - 3, PT + cH * (1 - i / 4) + 3.5);
   }
 }
 
@@ -1096,6 +1097,7 @@ setInterval(refresh, REFRESH_MS);
 window.addEventListener('resize', () => {
   drawTimeline();
   renderPerformance();
+  renderHeatmap();
   document.querySelectorAll('.dist-canvas').forEach(c => {
     const i = parseInt(c.id.split('-').pop());
     const latest = S.entries[S.entries.length - 1];
