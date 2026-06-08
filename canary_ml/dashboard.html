@@ -826,7 +826,7 @@ function drawDist(el, curr, ref) {
   const refYs  = refKde ? normPeak(refKde.ys) : null;
   const yMax   = 1.15;
 
-  const PL = 38, PR = 10, PT = 4, PB = 8;
+  const PL = 44, PR = 10, PT = 4, PB = 8;
   const cW = W - PL - PR, cH = H - PT - PB;
 
   const mX = x => PL + ((x - xMin) / (xMax - xMin || 1)) * cW;
@@ -869,7 +869,7 @@ function drawDist(el, curr, ref) {
 // STAT CARDS
 // ─────────────────────────────────────────────────────────────────────────────
 function renderPerformance() {
-  const entries = S.entries.slice(-30);
+  const entries = S.entries.slice(-50);
   const panel   = document.getElementById('perf-panel');
   const el      = document.getElementById('perf-timeline');
   const hasData = entries.some(e => e.estimated_accuracy != null);
@@ -880,7 +880,7 @@ function renderPerformance() {
   const threshold = 0.05;
   const { ctx, W, H } = initCanvas(el);
 
-  const PL = 38, PR = 10, PT = 8, PB = 20;
+  const PL = 44, PR = 10, PT = 8, PB = 20;
   const cW = W - PL - PR, cH = H - PT - PB;
 
   const vals = entries.map(e => e.estimated_accuracy).filter(v => v != null);
@@ -920,7 +920,7 @@ function renderPerformance() {
 
   // Bars — grow from bottom toward reference line, all green
   const slotW = cW / Math.max(entries.length, 1);
-  const barW  = Math.max(4, Math.round(slotW * 0.72));
+  const barW  = Math.max(2, Math.round(slotW * 0.45));
   const botY  = PT + cH;
   entries.forEach((e, i) => {
     if (e.estimated_accuracy == null) return;
