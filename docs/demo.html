@@ -274,7 +274,7 @@
   <!-- TIMELINE -->
   <div class="panel">
     <div class="panel-hdr">
-      <span class="panel-title">Drift Timeline · last 30 batches</span>
+      <span class="panel-title">Drift Timeline</span>
       <div class="panel-legend">
         <span style="color:var(--yellow);">── PSI score</span>
         <span style="color:#6e6e62;">── anomaly %</span>
@@ -556,7 +556,7 @@ function kde(data, h, N = 80) {
 function drawTimeline() {
   const el = document.getElementById('timeline');
   if (!el) return;
-  const entries = S.entries.slice(-30);
+  const entries = S.entries.slice(-50);
   if (!entries.length) return;
 
   const { ctx, W, H } = initCanvas(el);
