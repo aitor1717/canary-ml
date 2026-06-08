@@ -24,7 +24,7 @@
       --red:       #bf4040;
       --rdim:      #7a2828;
       --green:     #4a8a54;
-      --blue:      #6b9ed4;
+      --violet:    #9a7ed0;
     }
 
     html, body {
@@ -60,7 +60,7 @@
     .badge-alert  { color: var(--red);    border-color: var(--rdim); }
     .badge-warn   { color: var(--yellow); border-color: var(--ydim); }
     .badge-stable { color: var(--muted);  border-color: var(--border); }
-    .badge-mock   { color: var(--blue);   border-color: #3a5a7a; }
+    .badge-mock   { color: var(--violet);   border-color: #5a4a7a; }
     .h-right { display: flex; align-items: center; }
 
     .pulse {
@@ -272,7 +272,7 @@
       <span class="panel-title">Drift Timeline · last 30 batches</span>
       <div class="panel-legend">
         <span style="color:var(--yellow);">── PSI score</span>
-        <span style="color:var(--blue);">── anomaly %</span>
+        <span style="color:var(--violet);">── anomaly %</span>
       </div>
     </div>
     <canvas id="timeline"></canvas>
@@ -358,7 +358,7 @@ const C = {
   text: '#cac6b4', muted: '#56564e', dim: '#32322c',
   yellow: '#d4a827', ydim: '#7a6018',
   red: '#bf4040', rdim: '#7a2828',
-  green: '#4a8a54', blue: '#6b9ed4',
+  green: '#4a8a54', violet: '#9a7ed0',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -592,7 +592,7 @@ function drawTimeline() {
   // Anomaly line
   const anomPts = entries.map((_, i) => ({ x: mX(i), y: mA(anomSeries[i]) }));
   ctx.save();
-  ctx.strokeStyle = C.blue; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.strokeStyle = C.violet; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
   ctx.beginPath(); smoothLine(ctx, anomPts); ctx.stroke();
   ctx.restore();
 
@@ -653,7 +653,10 @@ function renderHeatmap() {
   const totalBatches = S.entries.length;
   const startIdx     = totalBatches - entries.length;
   const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
-  const colsTemplate = `110px repeat(${entries.length}, 28px)`;
+  const nameW   = 110;
+  const panelW  = el.parentElement?.getBoundingClientRect().width || 600;
+  const cellW   = Math.max(28, Math.floor((panelW - nameW - 40) / entries.length));
+  const colsTemplate = `${nameW}px repeat(${entries.length}, ${cellW}px)`;
 
   let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
   html += '<div></div>';
