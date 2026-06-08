@@ -404,7 +404,7 @@ function makeMockData() {
     if (b < 20) return 0;
     if (b < 33) return ((b - 20) / 13) ** 1.5;
     if (b < 39) return 1;
-    return Math.max(0.04, 1 - ((b - 38) / 9) ** 1.5);
+    return Math.max(0, 1 - ((b - 38) / 9) ** 1.5);
   }
 
   const reference = Array.from({ length: 300 }, () =>
@@ -612,7 +612,7 @@ function drawTimeline() {
   ctx.lineTo(psiPts[psiPts.length - 1].x, PT + cH);
   ctx.lineTo(psiPts[0].x, PT + cH);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(212,168,39,0.14)';
+  ctx.fillStyle = 'rgba(212,168,39,0.07)';
   ctx.fill();
   ctx.restore();
 
@@ -646,12 +646,6 @@ function drawTimeline() {
     ctx.fillText(v.toFixed(2), PL - 5, PT + cH * (1 - i / 4) + 3.5);
   }
 
-  // Right Y labels (anomaly %) — inside chart, right-aligned
-  ctx.textAlign = 'right';
-  for (let i = 1; i <= 4; i++) {
-    const v = anomMax * i / 4;
-    ctx.fillText(v.toFixed(1) + '%', W - PR - 3, PT + cH * (1 - i / 4) + 3.5);
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
