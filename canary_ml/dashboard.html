@@ -76,7 +76,7 @@
 
     /* ── CARDS ───────────────────────────────────────────────────────────── */
     #cards {
-      display: grid; grid-template-columns: repeat(4, 1fr);
+      display: grid; grid-template-columns: repeat(5, 1fr);
       gap: 10px; margin-bottom: 18px;
     }
     .card {
@@ -113,6 +113,7 @@
 
     /* ── TIMELINE ────────────────────────────────────────────────────────── */
     #timeline { display: block; width: 100%; height: 160px; }
+    #perf-timeline { display: block; width: 100%; height: 100px; }
 
     /* ── BOTTOM GRID ─────────────────────────────────────────────────────── */
     #bottom {
@@ -206,13 +207,14 @@
     }
 
     @media (max-width: 860px) {
-      #cards  { grid-template-columns: repeat(2,1fr); }
+      #cards  { grid-template-columns: repeat(3,1fr); }
     }
 
     @media (max-width: 500px) {
       #header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 14px; }
       .h-right { width: 100%; display: flex; align-items: center; justify-content: flex-end; }
       #cards { grid-template-columns: repeat(2,1fr); gap: 1px; }
+      #perf-timeline { height: 80px; }
       .card { padding: 12px 14px; }
       .card-value { font-size: 28px; }
       #main { padding: 12px; gap: 12px; }
@@ -264,6 +266,11 @@
       <div class="card-value" id="cv-batch">—</div>
       <div class="card-sub" id="cs-batch">—</div>
     </div>
+    <div class="card">
+      <div class="card-label">Est. Accuracy</div>
+      <div class="card-value" id="cv-perf">—</div>
+      <div class="card-sub" id="cs-perf">CBPE</div>
+    </div>
   </div>
 
   <!-- TIMELINE -->
@@ -276,6 +283,18 @@
       </div>
     </div>
     <canvas id="timeline"></canvas>
+  </div>
+
+  <!-- PERFORMANCE ESTIMATE (CBPE) -->
+  <div class="panel" id="perf-panel" style="display:none;">
+    <div class="panel-hdr">
+      <span class="panel-title">Performance Estimate · CBPE</span>
+      <div class="panel-legend">
+        <span style="color:var(--green);">── est. accuracy</span>
+        <span style="color:var(--muted);">- - reference</span>
+      </div>
+    </div>
+    <canvas id="perf-timeline"></canvas>
   </div>
 
   <!-- HEATMAP + DISTRIBUTIONS -->
@@ -307,7 +326,7 @@
     <table id="alert-table">
       <thead>
         <tr>
-          <th>Time</th><th>PSI</th><th>KS max</th><th>Drifted</th><th>Status</th>
+          <th>Time</th><th>PSI</th><th>KS max</th><th>Drifted</th><th>Est. Acc</th><th>Status</th>
         </tr>
       </thead>
       <tbody id="alert-body"></tbody>
@@ -364,7 +383,7 @@ const C = {
 // ─────────────────────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────────────────────
-const S = { entries: [], reference: null, selFeature: 0, isMock: false };
+const S = { entries: [], reference: null, selFeature: 0, isMock: false, reference_accuracy: null };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MOCK DATA (used when server is unreachable — for visual development)
@@ -429,6 +448,9 @@ function makeMockData() {
       anomaly_rate: +(ep * 0.18 + 0.008 + Math.abs((rand() - 0.5) * 0.04)).toFixed(3),
       drift_detected: psi > 0.1,
       alert_triggered: psi > 0.2,
+      estimated_accuracy: Math.max(0.60, +(0.92 - ep * 0.18 + (rand() - 0.5) * 0.015).toFixed(3)),
+      reference_accuracy: 0.92,
+      performance_alert: (0.92 - ep * 0.18) < (0.92 - 0.05),
       feature_names: FEAT_NAMES,
       feature_sample: Array.from({ length: N_SAMPLES }, () =>
         mu.map((m, i) => +rng(m, sd[i]).toFixed(4))),
@@ -449,15 +471,17 @@ async function fetchAll() {
     ]);
     const entries = (await dr.json()) || [];
     if (entries.length === 0) throw new Error('empty');
-    S.entries   = entries;
-    S.reference = await rr.json();
+    S.entries          = entries;
+    S.reference        = await rr.json();
+    S.reference_accuracy = entries.find(e => e.reference_accuracy != null)?.reference_accuracy ?? null;
     return true;
   } catch {
     if (S.entries.length === 0) {
       const mock = makeMockData();
-      S.entries   = mock.entries;
-      S.reference = mock.reference;
-      S.isMock    = true;
+      S.entries          = mock.entries;
+      S.reference        = mock.reference;
+      S.reference_accuracy = 0.92;
+      S.isMock           = true;
     }
     return false;
   }
@@ -828,6 +852,96 @@ function drawDist(el, curr, ref) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STAT CARDS
 // ─────────────────────────────────────────────────────────────────────────────
+function renderPerformance() {
+  const entries = S.entries.slice(-30);
+  const panel   = document.getElementById('perf-panel');
+  const el      = document.getElementById('perf-timeline');
+  const hasData = entries.some(e => e.estimated_accuracy != null);
+  if (!hasData) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+
+  const refAcc   = S.reference_accuracy;
+  const threshold = 0.05;
+  const { ctx, W, H } = initCanvas(el);
+
+  const PL = 38, PR = 10, PT = 8, PB = 20;
+  const cW = W - PL - PR, cH = H - PT - PB;
+
+  const vals = entries.map(e => e.estimated_accuracy).filter(v => v != null);
+  const yMin = Math.max(0, Math.min(...vals) - 0.03);
+  const yMax = Math.min(1, Math.max(...vals) + 0.03);
+  const span = yMax - yMin || 0.1;
+
+  const mX = i  => PL + (i / Math.max(entries.length - 1, 1)) * cW;
+  const mY = v  => PT + cH - ((v - yMin) / span) * cH;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  for (let i = 1; i <= 3; i++) {
+    const y = PT + cH * i / 4;
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke();
+  }
+
+  if (refAcc != null) {
+    // Alert zone — below reference minus threshold
+    const alertLineY = mY(refAcc - threshold);
+    const bottomY    = PT + cH;
+    if (alertLineY < bottomY) {
+      ctx.fillStyle = 'rgba(191,64,64,0.06)';
+      ctx.fillRect(PL, Math.max(PT, alertLineY), cW, bottomY - Math.max(PT, alertLineY));
+    }
+    // Reference dashed line
+    ctx.save();
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    const ry = mY(refAcc);
+    ctx.beginPath(); ctx.moveTo(PL, ry); ctx.lineTo(W - PR, ry); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+  }
+
+  // Collect points
+  const pts = entries
+    .map((e, i) => e.estimated_accuracy != null ? { x: mX(i), y: mY(e.estimated_accuracy) } : null)
+    .filter(Boolean);
+
+  if (pts.length > 1) {
+    const latest = entries[entries.length - 1];
+    const delta  = refAcc != null && latest.estimated_accuracy != null
+      ? latest.estimated_accuracy - refAcc : 0;
+    const col    = delta < -threshold ? C.red : delta < -threshold / 2 ? C.yellow : C.green;
+    const fill   = delta < -threshold ? 'rgba(191,64,64,0.08)'
+                 : delta < -threshold / 2 ? 'rgba(212,168,39,0.08)'
+                 : 'rgba(74,138,84,0.08)';
+
+    ctx.save();
+    ctx.beginPath(); smoothLine(ctx, pts);
+    ctx.lineTo(pts[pts.length - 1].x, PT + cH);
+    ctx.lineTo(pts[0].x, PT + cH); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+    ctx.beginPath(); smoothLine(ctx, pts); ctx.stroke(); ctx.restore();
+  }
+
+  // Y labels
+  ctx.fillStyle = C.muted; ctx.font = '9px "Fira Code"'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 3; i++) {
+    const v = yMin + span * i / 3;
+    ctx.fillText((v * 100).toFixed(0) + '%', PL - 4, mY(v) + 3);
+  }
+
+  // X labels
+  const step = Math.max(1, Math.floor(entries.length / 6));
+  const batchStart = S.entries.length - entries.length;
+  ctx.textAlign = 'center';
+  for (let i = 0; i < entries.length; i += step) {
+    ctx.fillText(`B${batchStart + i + 1}`, mX(i), H - 3);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 function renderCards() {
   if (!S.entries.length) return;
   const latest = S.entries[S.entries.length - 1];
@@ -849,6 +963,20 @@ function renderCards() {
   setCard('anom', anom.toFixed(1) + '%', anom > 5 ? 'alert' : anom > 2 ? 'warn' : '',
           baseAnom != null ? `baseline ~${baseAnom.toFixed(1)}%` : 'vs. baseline');
   setCard('batch', (latest.n_samples || 0).toLocaleString(), '', '');
+
+  const estAcc = latest.estimated_accuracy;
+  const refAcc = S.reference_accuracy;
+  if (estAcc != null) {
+    const delta     = refAcc != null ? estAcc - refAcc : null;
+    const perfLevel = delta != null ? (delta < -0.05 ? 'alert' : delta < -0.02 ? 'warn' : '') : '';
+    const sign      = delta != null ? (delta >= 0 ? '+' : '') : '';
+    const perfSub   = delta != null
+      ? `ref: ${(refAcc * 100).toFixed(1)}% (${sign}${(delta * 100).toFixed(1)}pp)`
+      : 'CBPE';
+    setCard('perf', (estAcc * 100).toFixed(1) + '%', perfLevel, perfSub);
+  } else {
+    setCard('perf', '—', '', 'no predict_proba');
+  }
 }
 
 function setCard(id, val, level, sub) {
@@ -886,7 +1014,7 @@ function renderHeader() {
 // ─────────────────────────────────────────────────────────────────────────────
 function renderAlerts() {
   const alerts = S.entries
-    .filter(e => e.alert_triggered || e.drift_detected)
+    .filter(e => e.alert_triggered || e.drift_detected || e.performance_alert)
     .slice(-20).reverse();
   const panel = document.getElementById('alert-panel');
   const body  = document.getElementById('alert-body');
@@ -896,17 +1024,22 @@ function renderAlerts() {
   body.innerHTML = alerts.map(e => {
     const ksMax  = Math.max(0, ...Object.values(e.ks_results || {}).map(v => v.statistic || 0));
     const ndrift = Object.values(e.ks_results || {}).filter(v => v.drifted).length;
-    const status = e.alert_triggered ? 'ALERT' : 'WARN';
+    const isPerfAlert = e.performance_alert && !e.alert_triggered;
+    const status = e.alert_triggered ? 'DRIFT' : e.performance_alert ? 'PERF' : 'WARN';
     const ts     = (e.timestamp || '').slice(0, 19).replace('T', ' ');
     const psi    = (e.psi_score || 0).toFixed(3);
     const pCol   = e.psi_score > 0.2 ? C.red : C.yellow;
-    const bCol   = status === 'ALERT' ? C.red  : C.yellow;
-    const bDim   = status === 'ALERT' ? C.rdim : C.ydim;
+    const bCol   = e.alert_triggered ? C.red : e.performance_alert ? C.violet : C.yellow;
+    const bDim   = e.alert_triggered ? C.rdim : e.performance_alert ? '#5a4a7a' : C.ydim;
+    const perfStr = e.estimated_accuracy != null
+      ? `<td style="color:${bCol}">${(e.estimated_accuracy * 100).toFixed(1)}%</td>`
+      : `<td style="color:${C.muted}">—</td>`;
     return `<tr>
       <td style="color:${C.muted}">${ts}</td>
       <td style="color:${pCol}">${psi}</td>
       <td style="color:${C.text}">${ksMax.toFixed(3)}</td>
       <td style="color:${C.text}">${ndrift}</td>
+      ${perfStr}
       <td><span style="font-size:9px;letter-spacing:.08em;padding:2px 8px;border-radius:2px;border:1px solid ${bDim};color:${bCol};">${status}</span></td>
     </tr>`;
   }).join('');
@@ -933,6 +1066,7 @@ function render() {
   renderHeader();
   renderCards();
   drawTimeline();
+  renderPerformance();
   renderHeatmap();
   renderDistributions();
   renderAlerts();
@@ -953,6 +1087,7 @@ refresh();
 setInterval(refresh, REFRESH_MS);
 window.addEventListener('resize', () => {
   drawTimeline();
+  renderPerformance();
   document.querySelectorAll('.dist-canvas').forEach(c => {
     const i = parseInt(c.id.split('-').pop());
     const latest = S.entries[S.entries.length - 1];

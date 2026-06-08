@@ -31,6 +31,7 @@ Most monitoring tools need a sidecar process, a managed database, or a cloud acc
 | Ships own dashboard | ✅ | Report files | ✅ | Cloud |
 | PSI + KS + chi² | ✅ | ✅ | ✅ | ✅ |
 | Anomaly detection | ✅ | ❌ | ❌ | ❌ |
+| CBPE (label-free perf est.) | ✅ | ❌ | ✅ | ❌ |
 | on_alert callback | ✅ | ❌ | ❌ | ❌ |
 | Python-only install | ✅ | ✅ | ✅ | Agent |
 
@@ -187,7 +188,7 @@ pytest --cov=canary_ml        # with coverage
 
 ## Roadmap
 
-**v1.1** — Label-free performance estimation (CBPE): estimate model accuracy/F1 from predicted confidence scores without ground truth labels. Alerts when estimated performance degrades, not just when inputs shift.
+**v1.2** — Multivariate drift detection; LLM / text input monitoring.
 
 ---
 

@@ -14,6 +14,13 @@ def check_alert(report: DriftReport, threshold: float) -> bool:
     return report.psi_score > threshold
 
 
+def check_performance_alert(report: DriftReport, threshold: float) -> bool:
+    """Return True when estimated accuracy has dropped more than *threshold* below reference."""
+    if report.performance_delta is None:
+        return False
+    return report.performance_delta < -abs(threshold)
+
+
 def format_alert(report: DriftReport) -> None:
     """Print a rich-formatted alert panel to the terminal."""
     drifted = sum(1 for v in report.ks_results.values() if v.get("drifted"))
@@ -36,5 +43,12 @@ def format_alert(report: DriftReport) -> None:
     body.append(f"{drifted}\n", style=style if drifted > 0 else "")
     body.append(f"  anomaly rate   ", style="dim")
     body.append(f"{report.anomaly_rate * 100:.1f}%\n", style="yellow" if report.anomaly_rate > 0.02 else "")
+    if report.estimated_accuracy is not None:
+        delta_str = f" ({report.performance_delta:+.1%})" if report.performance_delta is not None else ""
+        body.append(f"  est. accuracy  ", style="dim")
+        body.append(
+            f"{report.estimated_accuracy:.1%}{delta_str}\n",
+            style="bold red" if report.performance_alert else "",
+        )
 
     _console.print(Panel(body, title=title, border_style=style.split()[1]))

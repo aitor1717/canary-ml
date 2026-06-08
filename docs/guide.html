@@ -244,6 +244,7 @@
       <a class="sidebar-link" href="#ks">KS test — per feature</a>
       <a class="sidebar-link" href="#chi2">Chi² — categorical</a>
       <a class="sidebar-link" href="#anomaly">Anomaly detection</a>
+      <a class="sidebar-link" href="#cbpe">CBPE — performance est.</a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-heading">Reading the dashboard</div>
@@ -513,6 +514,71 @@
       <div class="callout red">
         <p><strong>High anomaly rate ≠ high PSI, necessarily.</strong> You can have a stable overall distribution (low PSI) but a small number of very extreme outliers (high anomaly rate). Both matter, but they signal different problems.</p>
       </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- CBPE -->
+    <div class="section" id="cbpe">
+      <div class="section-eyebrow">how it works</div>
+      <h2>CBPE — Label-free performance estimation</h2>
+
+      <p>Drift tests tell you the inputs have changed. But the question that matters most is: <strong>is the model still making accurate predictions?</strong> Normally you can only answer that after collecting ground-truth labels — which can take days or weeks in production.</p>
+
+      <p>CBPE (Confidence-Based Performance Estimation) answers it <em>immediately</em>, using nothing but the model's predicted probabilities.</p>
+
+      <h4>The key insight</h4>
+      <p>If a model predicts class A with 90% confidence, it is — assuming well-calibrated probabilities — right about 90% of the time on those predictions. For any sample, the probability of a correct prediction equals <code>max(p_i)</code> across all classes, because you always predict the most confident class.</p>
+
+      <pre><code><span class="cm"># For each sample, expected accuracy contribution = max probability</span>
+<span class="cm"># Binary:     max(p, 1-p)                  → P(correct)</span>
+<span class="cm"># Multi-class: max(p_class1, p_class2, ...) → P(correct)</span>
+
+E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batch</span></code></pre>
+
+      <p>This works identically for binary and multi-class classifiers. It requires no labels. It produces an estimate on every batch, in real time.</p>
+
+      <h4>Reference vs current</h4>
+      <p>At monitor creation, canary runs <code>predict_proba(reference_data)</code> once and stores the resulting estimate as <strong>reference accuracy</strong> — the model's expected performance on its training distribution. On every subsequent <code>.predict()</code> call, it recomputes the estimate and tracks the <strong>delta</strong>.</p>
+
+      <div class="metric-row">
+        <div class="metric-card">
+          <div class="metric-label">Reference accuracy</div>
+          <div class="metric-value" style="color:var(--green);">92.1%</div>
+          <div class="metric-desc">Baseline — computed once at init.</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Current estimate</div>
+          <div class="metric-value" style="color:var(--yellow);">86.4%</div>
+          <div class="metric-desc">Latest batch — recomputed each predict.</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Delta</div>
+          <div class="metric-value" style="color:var(--red);">−5.7pp</div>
+          <div class="metric-desc">Alert fires at −5pp by default.</div>
+        </div>
+      </div>
+
+      <h4>The performance alert threshold</h4>
+      <p>The <code>performance_threshold</code> parameter (default <code>0.05</code>) sets how large a drop triggers an alert. A value of <code>0.05</code> means: alert when estimated accuracy has fallen more than 5 percentage points below reference. You can lower it for high-stakes models.</p>
+
+      <pre><code><span class="id">monitor</span> = <span class="cy">ModelMonitor</span>(
+    model=<span class="id">clf</span>,
+    reference_data=<span class="id">X_train</span>,
+    performance_threshold=<span class="nu">0.03</span>,   <span class="cm"># alert at 3pp drop — more sensitive</span>
+)</code></pre>
+
+      <h4>The calibration caveat</h4>
+      <p>CBPE is most accurate when your model's probabilities are well-calibrated — i.e., when a prediction of 80% confidence really is correct ~80% of the time. Most sklearn classifiers (logistic regression, calibrated SVMs, random forests) are reasonably calibrated out of the box. Tree ensembles and neural networks are often less so.</p>
+
+      <p><strong>What this means in practice:</strong> Even with a poorly calibrated model, CBPE reliably tracks <em>relative</em> changes — a drop from 0.88 to 0.74 is a real signal even if the absolute values are off. The delta matters more than the absolute number.</p>
+
+      <div class="callout">
+        <p><strong>No predict_proba?</strong> CBPE is silently skipped for models that don't implement <code>predict_proba</code> (most regressors, some classifiers). The Est. Accuracy card will show <code>—</code>. Everything else works normally.</p>
+      </div>
+
+      <h4>When CBPE catches what PSI misses</h4>
+      <p>The most valuable scenario: <strong>inputs look stable but performance is dropping</strong>. This happens when the relationship between inputs and outputs has changed — for example, a fraud model whose fraud patterns have evolved while the transaction amounts and frequencies remain similar. PSI stays low. KS stays green. But CBPE catches the performance cliff.</p>
     </div>
 
     <hr class="divider">
