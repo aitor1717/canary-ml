@@ -76,7 +76,7 @@
 
     /* ── CARDS ───────────────────────────────────────────────────────────── */
     #cards {
-      display: grid; grid-template-columns: repeat(5, 1fr);
+      display: grid; grid-template-columns: repeat(4, 1fr);
       gap: 10px; margin-bottom: 18px;
     }
     .card {
@@ -207,7 +207,7 @@
     }
 
     @media (max-width: 860px) {
-      #cards  { grid-template-columns: repeat(3,1fr); }
+      #cards  { grid-template-columns: repeat(2,1fr); }
     }
 
     @media (max-width: 500px) {
@@ -263,11 +263,6 @@
       <div class="card-label">Anomaly rate</div>
       <div class="card-value" id="cv-anom">—</div>
       <div class="card-sub" id="cs-anom">—</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Batch size</div>
-      <div class="card-value" id="cv-batch">—</div>
-      <div class="card-sub" id="cs-batch">—</div>
     </div>
     <div class="card">
       <div class="card-label">Est. Accuracy</div>
@@ -954,7 +949,6 @@ function renderCards() {
           `features drifted: ${ndrift}`);
   setCard('anom', anom.toFixed(1) + '%', anom > 5 ? 'alert' : anom > 2 ? 'warn' : '',
           baseAnom != null ? `baseline ~${baseAnom.toFixed(1)}%` : 'vs. baseline');
-  setCard('batch', (latest.n_samples || 0).toLocaleString(), '', '');
 
   const estAcc = latest.estimated_accuracy;
   const refAcc = S.reference_accuracy;
