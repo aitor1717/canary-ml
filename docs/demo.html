@@ -277,7 +277,7 @@
       <span class="panel-title">Drift Timeline</span>
       <div class="panel-legend">
         <span style="color:var(--yellow);">── PSI score</span>
-        <span style="color:#6e6e62;">── anomaly %</span>
+        <span style="color:#a8a89a;">── anomaly %</span>
       </div>
     </div>
     <canvas id="timeline"></canvas>
@@ -620,7 +620,8 @@ function drawTimeline() {
   // Anomaly line
   const anomPts = entries.map((_, i) => ({ x: mX(i), y: mA(anomSeries[i]) }));
   ctx.save();
-  ctx.strokeStyle = '#6e6e62'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#a8a89a'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.shadowColor = '#a8a89a'; ctx.shadowBlur = 4;
   ctx.beginPath(); smoothLine(ctx, anomPts); ctx.stroke();
   ctx.restore();
 
