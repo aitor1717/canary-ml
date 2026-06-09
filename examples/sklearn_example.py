@@ -23,8 +23,9 @@ monitor = ModelMonitor(
 )
 
 # ── Clean batch — no alert expected ──────────────────────────────────────────
+# Use at least 200 samples for reliable PSI; smaller batches produce false alarms.
 print("\n--- Clean batch (no drift expected) ---")
-preds_clean = monitor.predict(X_test[:50])
+preds_clean = monitor.predict(X_test[:200])
 report = monitor.get_report()
 print(report.summary())
 

@@ -11,12 +11,14 @@ import numpy as np
 
 from scipy import stats as _scipy_stats
 
-from canary_ml.alerts import check_alert, check_performance_alert, format_alert
+from canary_ml.alerts import format_alert
 from canary_ml.anomaly import AnomalyDetector
 from canary_ml.cbpe import estimate_accuracy
 from canary_ml.drift import detect_drift
 from canary_ml.report import DriftReport
 from canary_ml.storage import MonitorLog
+
+_MIN_PSI_SAMPLES = 200
 
 
 class ModelMonitor:
@@ -39,6 +41,7 @@ class ModelMonitor:
         verbose: bool = True,
         on_alert: Callable[[DriftReport], None] | None = None,
         performance_threshold: float = 0.05,
+        categorical_threshold: int = 20,
     ) -> None:
         self._model = model
         self._reference = np.asarray(reference_data, dtype=float)
@@ -47,7 +50,9 @@ class ModelMonitor:
 
         self._feature_names = feature_names
         self._alert_threshold = alert_threshold
+        self._anomaly_contamination = anomaly_contamination
         self._performance_threshold = performance_threshold
+        self._categorical_threshold = categorical_threshold
         self._verbose = verbose
         self._on_alert = on_alert
         self._log_path = Path(log_path)
@@ -93,8 +98,13 @@ class ModelMonitor:
     def predict_proba(self, X: Any) -> np.ndarray:
         """Passthrough to model.predict_proba if supported."""
         probas = getattr(self._model, "predict_proba")(X)
+        outputs: np.ndarray | None = None
         try:
-            self._monitor(X, outputs=None, probas=probas)
+            outputs = self._model.predict(X)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            self._monitor(X, outputs=outputs, probas=probas)
         except Exception as exc:  # noqa: BLE001
             self._log.append({"error": str(exc), "timestamp": _now()})
         return probas
@@ -130,8 +140,16 @@ class ModelMonitor:
         if arr.ndim == 1:
             arr = arr.reshape(-1, 1)
 
+        if len(arr) < _MIN_PSI_SAMPLES and self._verbose:
+            from rich.console import Console
+            Console().print(
+                f"[bold yellow]canary[/bold yellow] warning: batch size {len(arr)} "
+                f"is below {_MIN_PSI_SAMPLES} — PSI may be unreliable. "
+                f"Use drift_detected (KS-based) for small batches."
+            )
+
         anomaly_result = self._detector.score(arr)
-        psi, ks_results = detect_drift(self._reference, arr)
+        psi, ks_results = detect_drift(self._reference, arr, categorical_threshold=self._categorical_threshold)
 
         # Output distribution drift — always KS so the statistic is bounded [0,1]
         output_ks: dict[str, Any] | None = None
@@ -157,7 +175,8 @@ class ModelMonitor:
                 pass
 
         drift_detected = any(v.get("drifted") for v in ks_results.values())
-        alert_triggered = psi > self._alert_threshold or performance_alert
+        anomaly_alert = anomaly_result["anomaly_rate"] > min(0.1, self._anomaly_contamination * 3)
+        alert_triggered = psi > self._alert_threshold or performance_alert or anomaly_alert
 
         report = DriftReport(
             timestamp=_now(),

@@ -9,18 +9,6 @@ from canary_ml.report import DriftReport
 _console = Console()
 
 
-def check_alert(report: DriftReport, threshold: float) -> bool:
-    """Return True when PSI exceeds *threshold*."""
-    return report.psi_score > threshold
-
-
-def check_performance_alert(report: DriftReport, threshold: float) -> bool:
-    """Return True when estimated accuracy has dropped more than *threshold* below reference."""
-    if report.performance_delta is None:
-        return False
-    return report.performance_delta < -abs(threshold)
-
-
 def format_alert(report: DriftReport) -> None:
     """Print a rich-formatted alert panel to the terminal."""
     drifted = sum(1 for v in report.ks_results.values() if v.get("drifted"))

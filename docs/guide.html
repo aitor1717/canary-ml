@@ -246,7 +246,7 @@
       <a class="sidebar-link" href="#ks">KS test — per feature</a>
       <a class="sidebar-link" href="#chi2">Chi² — categorical</a>
       <a class="sidebar-link" href="#anomaly">Anomaly detection</a>
-      <a class="sidebar-link" href="#cbpe">CBPE — performance est.</a>
+      <a class="sidebar-link" href="#cbpe">Confidence estimate</a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-heading">Reading the dashboard</div>
@@ -524,11 +524,11 @@
     <!-- CBPE -->
     <div class="section" id="cbpe">
       <div class="section-eyebrow">how it works</div>
-      <h2>CBPE — Label-free performance estimation</h2>
+      <h2>Confidence estimate — Label-free performance estimation</h2>
 
       <p>Drift tests tell you the inputs have changed. But the question that matters most is: <strong>is the model still making accurate predictions?</strong> Normally you can only answer that after collecting ground-truth labels — which can take days or weeks in production.</p>
 
-      <p>CBPE (Confidence-Based Performance Estimation) answers it <em>immediately</em>, using nothing but the model's predicted probabilities.</p>
+      <p>canary's confidence estimate answers it <em>immediately</em>, using nothing but the model's predicted probabilities. It is most accurate when probabilities are well-calibrated; if your model is overconfident, treat the absolute values as a directional signal — the delta is what matters.</p>
 
       <h4>The key insight</h4>
       <p>If a model predicts class A with 90% confidence, it is — assuming well-calibrated probabilities — right about 90% of the time on those predictions. For any sample, the probability of a correct prediction equals <code>max(p_i)</code> across all classes, because you always predict the most confident class.</p>
@@ -572,16 +572,16 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
 )</code></pre>
 
       <h4>The calibration caveat</h4>
-      <p>CBPE is most accurate when your model's probabilities are well-calibrated — i.e., when a prediction of 80% confidence really is correct ~80% of the time. Most sklearn classifiers (logistic regression, calibrated SVMs, random forests) are reasonably calibrated out of the box. Tree ensembles and neural networks are often less so.</p>
+      <p>The estimate is most accurate when your model's probabilities are well-calibrated — i.e., when a prediction of 80% confidence really is correct ~80% of the time. Most sklearn classifiers (logistic regression, calibrated SVMs, random forests) are reasonably calibrated out of the box. Tree ensembles and neural networks are often less so. Use <code>sklearn.calibration.CalibratedClassifierCV</code> if you need precise absolute values.</p>
 
-      <p><strong>What this means in practice:</strong> Even with a poorly calibrated model, CBPE reliably tracks <em>relative</em> changes — a drop from 0.88 to 0.74 is a real signal even if the absolute values are off. The delta matters more than the absolute number.</p>
+      <p><strong>What this means in practice:</strong> Even with a poorly calibrated model, the estimate reliably tracks <em>relative</em> changes — a drop from 0.88 to 0.74 is a real signal even if the absolute values are off. The delta matters more than the absolute number.</p>
 
       <div class="callout">
-        <p><strong>No predict_proba?</strong> CBPE is silently skipped for models that don't implement <code>predict_proba</code> (most regressors, some classifiers). The Est. Accuracy card will show <code>—</code>. Everything else works normally.</p>
+        <p><strong>No predict_proba?</strong> The confidence estimate is silently skipped for models that don't implement <code>predict_proba</code> (most regressors, some classifiers). The Est. Accuracy card will show <code>—</code>. Everything else works normally.</p>
       </div>
 
-      <h4>When CBPE catches what PSI misses</h4>
-      <p>The most valuable scenario: <strong>inputs look stable but performance is dropping</strong>. This happens when the relationship between inputs and outputs has changed — for example, a fraud model whose fraud patterns have evolved while the transaction amounts and frequencies remain similar. PSI stays low. KS stays green. But CBPE catches the performance cliff.</p>
+      <h4>When the confidence estimate catches what PSI misses</h4>
+      <p>The most valuable scenario: <strong>inputs look stable but performance is dropping</strong>. This happens when the relationship between inputs and outputs has changed — for example, a fraud model whose fraud patterns have evolved while the transaction amounts and frequencies remain similar. PSI stays low. KS stays green. But the confidence estimate catches the performance cliff.</p>
     </div>
 
     <hr class="divider">

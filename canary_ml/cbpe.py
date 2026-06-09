@@ -4,12 +4,13 @@ import numpy as np
 
 
 def estimate_accuracy(probas: np.ndarray) -> float:
-    """Estimate classifier accuracy from predicted probabilities (CBPE).
+    """Estimate classifier accuracy as mean max-class probability.
 
-    For each sample the expected probability of a correct prediction equals
-    max(p_i) across all classes — you always predict the most confident class,
-    and that confidence is the probability of being right.  Averaging over the
-    batch gives an unbiased accuracy estimate when probabilities are calibrated.
+    This equals true accuracy only when the model's predicted probabilities are
+    well-calibrated (i.e. a prediction of 0.9 is correct ~90% of the time).
+    Most classifiers are overconfident — if your model hasn't been through
+    calibration (e.g. sklearn's CalibratedClassifierCV), this estimate will
+    overstate true accuracy. Use it as a directional signal, not a precise number.
 
     Works identically for binary (shape n×2) and multi-class (shape n×k).
     If a 1-D array is passed it is interpreted as P(positive) for binary.

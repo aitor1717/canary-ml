@@ -32,8 +32,41 @@ class MonitorLog:
                     _fcntl.flock(fh.fileno(), _fcntl.LOCK_UN)
 
     def read_last(self, n: int = 100) -> list[dict[str, Any]]:
-        """Return the last *n* log entries, oldest first."""
-        return self.read_all()[-n:]
+        """Return the last *n* log entries, oldest first, without reading the full file."""
+        if not self._file.exists():
+            return []
+
+        chunk_size = 8192
+        entries: list[dict[str, Any]] = []
+        with self._file.open("rb") as fh:
+            fh.seek(0, 2)
+            remaining = fh.tell()
+            buf = b""
+            while remaining > 0 and len(entries) < n:
+                read_size = min(chunk_size, remaining)
+                remaining -= read_size
+                fh.seek(remaining)
+                buf = fh.read(read_size) + buf
+                lines = buf.split(b"\n")
+                buf = lines[0]
+                for line in reversed(lines[1:]):
+                    stripped = line.strip()
+                    if stripped:
+                        try:
+                            entries.append(json.loads(stripped))
+                        except json.JSONDecodeError:
+                            pass
+                        if len(entries) == n:
+                            break
+
+        # Process any remaining partial line at the start of the file
+        if buf.strip() and len(entries) < n:
+            try:
+                entries.append(json.loads(buf.strip()))
+            except json.JSONDecodeError:
+                pass
+
+        return list(reversed(entries))
 
     def read_all(self) -> list[dict[str, Any]]:
         """Return all log entries, oldest first."""

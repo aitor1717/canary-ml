@@ -41,12 +41,15 @@ def psi_score(reference: np.ndarray, current: np.ndarray, bins: int = 10) -> flo
     n_features = ref.shape[1]
     psi_values: list[float] = []
 
+    # Fewer bins for small batches: keep ~10 samples per bin on average
+    effective_bins = min(bins, max(2, len(cur) // 10))
+
     for i in range(n_features):
         r = ref[:, i]
         c = cur[:, i]
 
         # Quantile-based bins on reference — equal-count partitioning, handles skew
-        breaks = np.unique(np.percentile(r, np.linspace(0, 100, bins + 1)))
+        breaks = np.unique(np.percentile(r, np.linspace(0, 100, effective_bins + 1)))
         if len(breaks) < 3:
             psi_values.append(0.0)   # constant feature, no drift measurable
             continue
@@ -112,6 +115,7 @@ def detect_drift(
     reference: np.ndarray,
     current: np.ndarray,
     bins: int = 10,
+    categorical_threshold: int = 20,
 ) -> tuple[float, dict[str, dict[str, Any]]]:
     """Compute PSI + per-feature KS/chi2, routing by column type.
 
@@ -132,7 +136,7 @@ def detect_drift(
     col_map: dict[str, str] = {}  # col_idx -> 'ks' | 'chi2'
 
     for i in range(ref.shape[1]):
-        if is_categorical(ref[:, i], cur[:, i]):
+        if is_categorical(ref[:, i], cur[:, i], threshold=categorical_threshold):
             chi2_cols_ref.append(ref[:, i])
             chi2_cols_cur.append(cur[:, i])
             col_map[str(i)] = "chi2"

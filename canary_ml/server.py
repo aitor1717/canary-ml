@@ -19,7 +19,16 @@ class _Handler(BaseHTTPRequestHandler):
                 "text/html; charset=utf-8",
             )
         elif route == "/api/data":
-            n = int(qs.get("n", ["100"])[0])
+            try:
+                n = int(qs.get("n", ["100"])[0])
+                if n <= 0:
+                    n = 100
+            except (ValueError, TypeError):
+                self.send_response(400)
+                self.send_header("Content-Type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"Bad request: 'n' must be a positive integer")
+                return
             from canary_ml.storage import MonitorLog
             entries = MonitorLog(self.server.log_path).read_last(n)
             self._json(entries)

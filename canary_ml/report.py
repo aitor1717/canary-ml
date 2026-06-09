@@ -22,6 +22,11 @@ class DriftReport:
     performance_delta: float | None = None
     performance_alert: bool = False
 
+    @property
+    def features_drifted(self) -> int:
+        """Number of features where KS/chi² p-value < 0.05."""
+        return sum(1 for v in self.ks_results.values() if v.get("drifted"))
+
     def summary(self) -> str:
         """One-line human-readable summary."""
         drifted = sum(1 for v in self.ks_results.values() if v.get("drifted"))

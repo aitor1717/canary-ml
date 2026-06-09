@@ -59,11 +59,11 @@ monitor.serve_dashboard(port=8501)
 
 ## What it monitors
 
-- **PSI** — global distribution shift. < 0.1 stable · 0.1–0.2 moderate · > 0.2 alert.
-- **KS test** — per-feature Kolmogorov-Smirnov (continuous features, p < 0.05 = drift).
+- **PSI** — global distribution shift. < 0.1 stable · 0.1–0.2 moderate · > 0.2 alert. Requires ≥ 200 samples per batch; use `drift_detected` (KS-based) for smaller batches.
+- **KS test** — per-feature Kolmogorov-Smirnov (continuous features, p < 0.05 = drift). Sample-size–corrected.
 - **Chi² test** — per-feature chi-squared (categorical features, ≤ 20 unique values).
 - **Anomaly detection** — ensemble of Isolation Forest + z-score (|z| > 3).
-- **CBPE** — confidence-based performance estimation without ground truth labels.
+- **Confidence estimate** — label-free accuracy proxy from predicted probabilities. Accurate when probabilities are well-calibrated; overestimates if the model is overconfident.
 
 ---
 
@@ -102,6 +102,8 @@ ModelMonitor(
     reference_data,             # np.ndarray or pd.DataFrame, shape (n, features)
     alert_threshold=0.2,        # PSI threshold for drift alert
     performance_threshold=0.05, # accuracy drop (pp) below reference that fires a perf alert
+    anomaly_contamination=0.05, # expected fraction of anomalies; alert fires at 3×
+    categorical_threshold=20,   # max unique values for a feature to be treated as categorical
     log_path="./canary_logs",
     verbose=False,
     on_alert=None,              # callable(DriftReport) fired on alert
@@ -119,13 +121,13 @@ ModelMonitor(
 | Attribute | Type | Description |
 |---|---|---|
 | `psi_score` | `float` | Global PSI vs reference |
-| `drift_detected` | `bool` | `True` if PSI > alert_threshold |
-| `ks_results` | `dict` | Per-feature `{statistic, p_value, drift}` |
-| `features_drifted` | `int` | Count of features with KS p < 0.05 |
+| `drift_detected` | `bool` | `True` if any feature's KS/chi² p < 0.05 (soft warning) |
+| `ks_results` | `dict` | Per-feature `{statistic, p_value, drifted}` |
+| `features_drifted` | `int` | Count of features with p < 0.05 (computed property) |
 | `anomaly_rate` | `float` | Fraction of samples flagged as anomalies |
-| `alert` | `bool` | `True` if drift_detected or anomaly_rate > 0.05 |
-| `estimated_accuracy` | `float \| None` | CBPE estimate; `None` if no `predict_proba` |
-| `reference_accuracy` | `float \| None` | CBPE on reference data |
+| `alert_triggered` | `bool` | `True` if PSI > threshold, anomaly rate is high, or performance drops |
+| `estimated_accuracy` | `float \| None` | Confidence estimate; `None` if no `predict_proba` |
+| `reference_accuracy` | `float \| None` | Confidence estimate on reference data |
 | `performance_delta` | `float \| None` | `estimated_accuracy − reference_accuracy` |
 | `performance_alert` | `bool` | `True` if delta < −performance_threshold |
 | `timestamp` | `str` | ISO 8601 |
