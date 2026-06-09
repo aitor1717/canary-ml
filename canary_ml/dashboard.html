@@ -922,7 +922,7 @@ function renderPerformance() {
   ctx.fillStyle = C.muted; ctx.font = '9px "Fira Code"'; ctx.textAlign = 'right';
   for (let i = 0; i <= 3; i++) {
     const v = yMin + span * i / 3;
-    ctx.fillText((v * 100).toFixed(0) + '%', PL - 4, mY(v) + 3);
+    ctx.fillText((v * 100).toFixed(0) + '%', PL - 7, mY(v) + 3);
   }
 
   // X labels
