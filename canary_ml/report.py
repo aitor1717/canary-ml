@@ -21,6 +21,8 @@ class DriftReport:
     reference_accuracy: float | None = None
     performance_delta: float | None = None
     performance_alert: bool = False
+    # Which conditions triggered the alert: "drift", "anomaly", "performance"
+    alert_reasons: list[str] = field(default_factory=list)
 
     @property
     def features_drifted(self) -> int:
@@ -54,6 +56,8 @@ class DriftReport:
             "drift_detected": self.drift_detected,
             "alert_triggered": self.alert_triggered,
         }
+        if self.alert_reasons:
+            d["alert_reasons"] = self.alert_reasons
         if self.output_ks is not None:
             d["output_ks"] = self.output_ks
         if self.estimated_accuracy is not None:
@@ -62,3 +66,9 @@ class DriftReport:
             d["performance_delta"] = round(self.performance_delta, 4) if self.performance_delta is not None else None
             d["performance_alert"] = self.performance_alert
         return d
+
+    def __getitem__(self, key: str) -> Any:
+        return self.to_dict()[key]
+
+    def keys(self):
+        return self.to_dict().keys()

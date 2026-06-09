@@ -8,5 +8,5 @@ build/
 .pytest_cache/
 canary_logs/
 assets/dashboard.png
-report.html
+report*.html
 CLAUDE.md

@@ -61,6 +61,7 @@
       color: var(--muted); text-decoration: none; transition: color 0.2s;
     }
     .nav-link:hover { color: var(--text); }
+    .nav-link.active { color: var(--yellow); }
     .nav-demo { color: var(--yellow); }
     .nav-gh {
       display: flex; align-items: center; gap: 7px;
@@ -266,8 +267,7 @@
 <nav>
   <a class="nav-logo" href="#">canary</a>
   <div class="nav-right">
-    <a class="nav-link" href="#">home</a>
-    <a class="nav-link" href="#code">quickstart</a>
+    <a class="nav-link active" href="#">home</a>
     <a class="nav-link" href="./guide.html">manual</a>
     <a class="nav-link nav-demo" href="./demo.html">demo</a>
   </div>
@@ -275,7 +275,7 @@
 
 <section class="hero">
   <div class="hero-left">
-    <div class="hero-eyebrow">v1.1.0 · MIT · Python 3.9+</div>
+    <div class="hero-eyebrow">v1.2.1 · MIT · Python 3.9+</div>
     <h1>CANARY</h1>
     <p class="hero-sub">Drift and anomaly detection for production ML models. <span style="color:var(--yellow)">Cutting-edge</span> performance in a wrapper, <span style="color:var(--yellow)">for free</span>.</p>
     <div class="install-row">
@@ -325,7 +325,7 @@
 <div class="features-brief">
   <div class="feat"><div class="feat-name">Data Drift Detection</div><div class="feat-desc">KS test, PSI, chi-square per feature with configurable thresholds.</div></div>
   <div class="feat"><div class="feat-name">Anomaly Detection</div><div class="feat-desc">Isolation Forest + z-score ensemble on inputs. KS test on prediction outputs.</div></div>
-  <div class="feat"><div class="feat-name">Zero Latency</div><div class="feat-desc">Monitoring is a side effect. Your inference path stays unchanged.</div></div>
+  <div class="feat"><div class="feat-name">Async Monitoring</div><div class="feat-desc">Monitoring runs in a background thread. Your inference latency is unaffected.</div></div>
   <div class="feat"><div class="feat-name">Live Dashboard</div><div class="feat-desc">Zero-dep HTML/JS dashboard. Ships with the package. No cloud account needed.</div></div>
 </div>
 
@@ -357,7 +357,7 @@ report = <span class="id">monitor</span>.<span class="cy">get_report</span>()
 </section>
 
 <footer>
-  <span class="ft">Aitor Bazo 2026 · canary · MIT · <a href="https://github.com/aitor1717/canary-ml" target="_blank">github.com/aitor1717/canary-ml</a></span>
+  <span class="ft">Aitor Bazo · 2026</span>
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="social-icons">
       <!-- GitHub -->

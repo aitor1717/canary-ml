@@ -5,9 +5,9 @@
 [![PyPI](https://img.shields.io/pypi/v/canary-ml)](https://pypi.org/project/canary-ml/)
 [![Python](https://img.shields.io/pypi/pyversions/canary-ml)](https://pypi.org/project/canary-ml/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-44%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-52%20passing-brightgreen)](tests/)
 
-One line wraps your model. Every `.predict()` call logs drift metrics, detects anomalies, and fires an alert when something shifts — without adding latency or requiring any infrastructure.
+One line wraps your model. Every `.predict()` call logs drift metrics, detects anomalies, and fires an alert when something shifts. Monitoring runs in a background thread — your inference latency is unaffected. No infrastructure required.
 
 [Project page](https://aitor1717.github.io/canary-ml/) · [Guide & manual](https://aitor1717.github.io/canary-ml/guide.html) · [Live demo](https://aitor1717.github.io/canary-ml/demo.html)
 
@@ -42,7 +42,7 @@ monitor = ModelMonitor(
     verbose=True,
 )
 
-# Drop-in replacement — monitoring is a side effect of predict()
+# Drop-in replacement — monitoring runs in the background
 predictions = monitor.predict(X_new)
 
 # Inspect the latest report
@@ -104,6 +104,7 @@ ModelMonitor(
     performance_threshold=0.05, # accuracy drop (pp) below reference that fires a perf alert
     anomaly_contamination=0.05, # expected fraction of anomalies; alert fires at 3×
     categorical_threshold=20,   # max unique values for a feature to be treated as categorical
+    store_samples=True,         # set False to skip storing raw feature rows (PII-sensitive envs)
     log_path="./canary_logs",
     verbose=False,
     on_alert=None,              # callable(DriftReport) fired on alert
@@ -112,7 +113,7 @@ ModelMonitor(
 
 | Method | Returns | Description |
 |---|---|---|
-| `.predict(X)` | same as model | Runs model + monitoring as a side effect |
+| `.predict(X)` | same as model | Runs model; monitoring queued in background thread |
 | `.get_report()` | `DriftReport \| None` | Latest monitoring report |
 | `.serve_dashboard(port=8501)` | — | Starts dashboard server in background thread |
 
@@ -126,11 +127,14 @@ ModelMonitor(
 | `features_drifted` | `int` | Count of features with p < 0.05 (computed property) |
 | `anomaly_rate` | `float` | Fraction of samples flagged as anomalies |
 | `alert_triggered` | `bool` | `True` if PSI > threshold, anomaly rate is high, or performance drops |
+| `alert_reasons` | `list[str]` | Which conditions fired: `"drift"`, `"anomaly"`, `"performance"` |
 | `estimated_accuracy` | `float \| None` | Confidence estimate; `None` if no `predict_proba` |
 | `reference_accuracy` | `float \| None` | Confidence estimate on reference data |
 | `performance_delta` | `float \| None` | `estimated_accuracy − reference_accuracy` |
 | `performance_alert` | `bool` | `True` if delta < −performance_threshold |
 | `timestamp` | `str` | ISO 8601 |
+
+`DriftReport` is not directly JSON-serialisable. Use `report.to_dict()` for logging or `json.dumps(report.to_dict())`. Dict-style access (`report["psi_score"]`) is also supported.
 
 ---
 

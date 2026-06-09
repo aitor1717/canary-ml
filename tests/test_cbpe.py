@@ -96,6 +96,7 @@ def test_cbpe_disabled_without_predict_proba(tmp_path):
 def test_report_has_estimated_accuracy_after_predict(tmp_path):
     monitor = make_proba_monitor(tmp_path)
     monitor.predict(X_test)
+    monitor._flush()
     report = monitor.get_report()
     assert report.estimated_accuracy is not None
     assert 0.5 < report.estimated_accuracy <= 1.0
@@ -113,6 +114,7 @@ def test_report_cbpe_fields_none_without_predict_proba(tmp_path):
         verbose=False,
     )
     monitor.predict(X_test)
+    monitor._flush()
     report = monitor.get_report()
     assert report.estimated_accuracy is None
     assert report.performance_delta is None
@@ -131,6 +133,7 @@ def test_performance_alert_fires_on_large_drop(tmp_path):
     # Inject reference accuracy higher than any real estimate
     monitor._reference_estimated_accuracy = 1.0
     monitor.predict(X_test)
+    monitor._flush()
     report = monitor.get_report()
     assert report.performance_alert is True
     assert report.alert_triggered is True
@@ -141,6 +144,7 @@ def test_performance_alert_does_not_fire_within_threshold(tmp_path):
     # Set a very large threshold so no alert fires
     monitor._performance_threshold = 1.0
     monitor.predict(X_test)
+    monitor._flush()
     report = monitor.get_report()
     assert report.performance_alert is False
 
@@ -158,5 +162,6 @@ def test_callback_fires_on_performance_alert(tmp_path):
     )
     monitor._reference_estimated_accuracy = 1.0
     monitor.predict(X_test)
+    monitor._flush()
     assert len(fired) == 1
     assert fired[0].performance_alert is True

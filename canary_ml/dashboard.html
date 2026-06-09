@@ -661,6 +661,15 @@ function ksColor(v) {
   return             `rgba(191,64,64,${Math.min(0.95, 0.50 + (v - 0.2) * 3).toFixed(2)})`;
 }
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function featName(k, names) {
   if (names && names[parseInt(k)] !== undefined) return names[parseInt(k)];
   return `feature_${k}`;
@@ -698,7 +707,7 @@ function renderHeatmap() {
     const sel = ri === S.selFeature ? ' sel' : '';
     const name = featName(k, fnames);
     html += `<div class="hm-row${sel}" style="grid-template-columns:${colsTemplate};" onclick="selectFeature(${ri})">`;
-    html += `<div class="hm-name" title="${name}">${name}</div>`;
+    html += `<div class="hm-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>`;
     entries.forEach(e => {
       const ks = e.ks_results?.[k]?.statistic || 0;
       html += `<div class="hm-cell" style="background:${ksColor(ks)};" title="KS: ${ks.toFixed(3)}"></div>`;

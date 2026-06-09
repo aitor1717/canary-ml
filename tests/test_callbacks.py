@@ -34,6 +34,7 @@ def test_on_alert_called_when_alert_triggered(tmp_path):
     monitor = make_monitor(tmp_path, alert_threshold=0.0, on_alert=fired.append)
     # threshold=0.0 means any PSI > 0 triggers; drifted batch should fire
     monitor.predict(rng.normal(5, 1, (50, 4)))
+    monitor._flush()
     assert len(fired) >= 1
     assert isinstance(fired[0], DriftReport)
 
@@ -42,6 +43,7 @@ def test_on_alert_not_called_when_stable(tmp_path):
     fired = []
     monitor = make_monitor(tmp_path, alert_threshold=999.0, on_alert=fired.append)
     monitor.predict(rng.normal(0, 1, (50, 4)))
+    monitor._flush()
     assert len(fired) == 0
 
 
@@ -49,6 +51,7 @@ def test_on_alert_receives_correct_report(tmp_path):
     reports = []
     monitor = make_monitor(tmp_path, alert_threshold=0.0, on_alert=reports.append)
     monitor.predict(rng.normal(5, 1, (50, 4)))
+    monitor._flush()
     assert reports[0].alert_triggered is True
     assert isinstance(reports[0].psi_score, float)
 
@@ -60,12 +63,14 @@ def test_on_alert_exception_does_not_propagate(tmp_path):
     monitor = make_monitor(tmp_path, alert_threshold=0.0, on_alert=bad_callback)
     # Should not raise — callback errors are swallowed
     result = monitor.predict(rng.normal(5, 1, (50, 4)))
+    monitor._flush()
     assert result is not None
 
 
 def test_no_on_alert_is_fine(tmp_path):
     monitor = make_monitor(tmp_path)
     monitor.predict(rng.normal(0, 1, (50, 4)))
+    monitor._flush()
 
 
 # ── output distribution monitoring ───────────────────────────────────────────
@@ -81,6 +86,7 @@ def test_output_ks_present_in_log(tmp_path):
         verbose=False,
     )
     monitor.predict(rng.normal(0, 1, (50, 4)))
+    monitor._flush()
     entry = monitor.get_history(1)[-1]
     assert "output_ks" in entry
 
@@ -105,6 +111,7 @@ def test_output_ks_drifted_on_shifted_outputs(tmp_path):
     # Override model after baseline captured to simulate concept drift
     monitor._model = AlwaysOne()
     monitor.predict(rng.normal(0, 1, (100, 4)))
+    monitor._flush()
 
     report = monitor.get_report()
     assert report is not None
@@ -122,6 +129,7 @@ def test_output_ks_stable_on_clean_data(tmp_path):
         verbose=False,
     )
     monitor.predict(rng.normal(0, 1, (80, 4)))
+    monitor._flush()
     report = monitor.get_report()
     # DummyClassifier always predicts the same class — outputs identical,
     # KS statistic should be ~0

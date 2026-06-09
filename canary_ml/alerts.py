@@ -14,7 +14,16 @@ def format_alert(report: DriftReport) -> None:
     drifted = sum(1 for v in report.ks_results.values() if v.get("drifted"))
 
     if report.alert_triggered:
-        style, title = "bold red", "[bold red]DRIFT ALERT[/bold red]"
+        reasons = report.alert_reasons
+        if len(reasons) > 1:
+            label = "ALERT"
+        elif reasons == ["anomaly"]:
+            label = "ANOMALY ALERT"
+        elif reasons == ["performance"]:
+            label = "PERFORMANCE ALERT"
+        else:
+            label = "DRIFT ALERT"
+        style, title = "bold red", f"[bold red]{label}[/bold red]"
     elif report.drift_detected:
         style, title = "bold yellow", "[bold yellow]DRIFT WARNING[/bold yellow]"
     else:
