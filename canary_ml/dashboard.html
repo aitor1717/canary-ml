@@ -880,7 +880,8 @@ function renderPerformance() {
   const yMax = Math.min(1, Math.max(...allVals) + 0.03);
   const span = yMax - yMin || 0.1;
 
-  const mX = i => PL + (i / Math.max(entries.length - 1, 1)) * cW;
+  const GAP = 6;
+  const mX = i => PL + GAP + (i / Math.max(entries.length - 1, 1)) * (cW - GAP);
   const mY = v => PT + cH - ((v - yMin) / span) * cH;
 
   ctx.clearRect(0, 0, W, H);
@@ -922,7 +923,7 @@ function renderPerformance() {
   ctx.fillStyle = C.muted; ctx.font = '9px "Fira Code"'; ctx.textAlign = 'right';
   for (let i = 0; i <= 3; i++) {
     const v = yMin + span * i / 3;
-    ctx.fillText((v * 100).toFixed(0) + '%', PL - 7, mY(v) + 3);
+    ctx.fillText((v * 100).toFixed(0) + '%', PL - 4, mY(v) + 3);
   }
 
   // X labels
