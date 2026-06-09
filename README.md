@@ -16,16 +16,10 @@ One line wraps your model. Every `.predict()` call logs drift metrics, detects a
 ## Install
 
 ```bash
-pip install "canary-ml[keras]"
-```
-
-Keras/TensorFlow support included. For a minimal install without Keras:
-
-```bash
 pip install canary-ml
 ```
 
-Requires Python 3.9+. Core dependencies: numpy, scipy, scikit-learn, rich.
+Requires Python 3.9+. Dependencies: numpy, scipy, scikit-learn, rich, tensorflow.
 
 ---
 
@@ -60,7 +54,7 @@ monitor.serve_dashboard(port=8501)
 ## What it monitors
 
 - **PSI** — global distribution shift. < 0.1 stable · 0.1–0.2 moderate · > 0.2 alert. Requires ≥ 200 samples per batch; use `drift_detected` (KS-based) for smaller batches.
-- **KS test** — per-feature Kolmogorov-Smirnov (continuous features, p < 0.05 = drift). Sample-size–corrected.
+- **KS test** — per-feature Kolmogorov-Smirnov (continuous features, p < 0.05 = drift). Note: with many features, expect ~5% false positives per feature under the null; `drift_detected` and `features_drifted` will occasionally fire on clean data at scale.
 - **Chi² test** — per-feature chi-squared (categorical features, ≤ 20 unique values).
 - **Anomaly detection** — ensemble of Isolation Forest + z-score (|z| > 3).
 - **Confidence estimate** — label-free accuracy proxy from predicted probabilities. Accurate when probabilities are well-calibrated; overestimates if the model is overconfident.
@@ -102,9 +96,9 @@ ModelMonitor(
     reference_data,             # np.ndarray or pd.DataFrame, shape (n, features)
     alert_threshold=0.2,        # PSI threshold for drift alert
     performance_threshold=0.05, # accuracy drop (pp) below reference that fires a perf alert
-    anomaly_contamination=0.05, # expected fraction of anomalies; alert fires at 3×
+    anomaly_contamination=0.05, # expected fraction of anomalies; alert fires at 4×
     categorical_threshold=20,   # max unique values for a feature to be treated as categorical
-    store_samples=True,         # set False to skip storing raw feature rows (PII-sensitive envs)
+    store_samples=True,         # set False to skip storing raw feature rows (recommended in PII-sensitive envs)
     log_path="./canary_logs",
     verbose=False,
     on_alert=None,              # callable(DriftReport) fired on alert
@@ -142,7 +136,7 @@ ModelMonitor(
 
 ```bash
 pip install -e ".[dev]"
-pytest                        # 44 tests
+pytest                        # 52 tests
 pytest --cov=canary_ml
 ```
 

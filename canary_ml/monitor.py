@@ -91,14 +91,8 @@ class ModelMonitor:
     def predict(self, X: Any) -> np.ndarray:
         """Run model prediction. Monitoring runs in a background thread."""
         result = self._model.predict(X)
-        probas: np.ndarray | None = None
-        if self._cbpe_enabled:
-            try:
-                probas = self._model.predict_proba(X)
-            except Exception:  # noqa: BLE001
-                _log.debug("predict_proba failed", exc_info=True)
         arr = _to_2d(X)
-        self._executor.submit(self._monitor_safe, arr, result, probas)
+        self._executor.submit(self._monitor_safe, arr, result, None)
         return result
 
     def predict_proba(self, X: Any) -> np.ndarray:
@@ -146,6 +140,11 @@ class ModelMonitor:
     # ── internals ─────────────────────────────────────────────────────────────
 
     def _monitor_safe(self, arr: np.ndarray, outputs: Any, probas: np.ndarray | None) -> None:
+        if probas is None and self._cbpe_enabled:
+            try:
+                probas = self._model.predict_proba(arr)
+            except Exception:  # noqa: BLE001
+                _log.debug("predict_proba failed in background", exc_info=True)
         try:
             self._monitor(arr, outputs, probas=probas)
         except Exception as exc:  # noqa: BLE001
@@ -187,7 +186,7 @@ class ModelMonitor:
                 _log.debug("confidence estimate failed", exc_info=True)
 
         drift_detected = any(v.get("drifted") for v in ks_results.values())
-        anomaly_alert = anomaly_result["anomaly_rate"] > min(0.1, self._anomaly_contamination * 3)
+        anomaly_alert = anomaly_result["anomaly_rate"] > min(0.2, self._anomaly_contamination * 4)
         # PSI alert is suppressed for small batches — variance is too high to be reliable
         psi_alert = psi > self._alert_threshold and len(arr) >= _MIN_PSI_SAMPLES
         alert_triggered = psi_alert or performance_alert or anomaly_alert

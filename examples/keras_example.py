@@ -12,7 +12,7 @@ try:
     from tensorflow import keras
 except ImportError:
     raise SystemExit(
-        "TensorFlow is not installed. Run: pip install 'canary-ml[keras]'"
+        "TensorFlow is not installed. Run: pip install canary-ml"
     )
 
 # ── Data ──────────────────────────────────────────────────────────────────────

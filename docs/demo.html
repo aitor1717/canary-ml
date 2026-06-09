@@ -38,30 +38,36 @@
 
     /* ── HEADER ──────────────────────────────────────────────────────────── */
     #header {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(13,13,11,0.96);
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(13,13,11,0.92);
       border-bottom: 1px solid var(--border);
-      padding: 13px 24px;
+      padding: 18px 52px;
       display: flex; align-items: center; justify-content: space-between;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(16px);
     }
     .h-left { display: flex; align-items: center; gap: 18px; }
     .h-logo {
       font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 800; font-size: 18px; letter-spacing: 0.06em;
+      font-weight: 800; font-size: 20px; letter-spacing: 0.06em;
       text-transform: uppercase; color: var(--yellow);
       display: flex; align-items: center; gap: 9px;
     }
     .badge {
       font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase;
       padding: 3px 9px; border-radius: 2px; border: 1px solid;
+      min-width: 72px; text-align: center;
       transition: color 0.4s, border-color 0.4s;
     }
     .badge-alert  { color: var(--red);    border-color: var(--rdim); }
     .badge-warn   { color: var(--yellow); border-color: var(--ydim); }
     .badge-stable { color: var(--muted);  border-color: var(--border); }
     .badge-mock   { color: #6e6e62; border-color: var(--borderHi); }
-    .h-right { display: flex; align-items: center; }
+    .h-right { display: flex; align-items: center; gap: 36px; }
+    .nav-link {
+      font-size: 11px; color: var(--yellow); text-decoration: none;
+      letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--text); }
 
     .pulse {
       width: 6px; height: 6px; border-radius: 50%;
@@ -72,7 +78,7 @@
     @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
 
     /* ── LAYOUT ──────────────────────────────────────────────────────────── */
-    #main { padding: 20px 24px; max-width: 1440px; margin: 0 auto; }
+    #main { padding: 72px 24px 20px; max-width: 1440px; margin: 0 auto; }
 
     /* ── CARDS ───────────────────────────────────────────────────────────── */
     #cards {
@@ -217,7 +223,7 @@
       #perf-timeline { height: 80px; }
       .card { padding: 12px 14px; }
       .card-value { font-size: 28px; }
-      #main { padding: 12px; gap: 12px; }
+      #main { padding: 72px 12px 12px; gap: 12px; }
       .panel-hdr { padding: 10px 14px; }
       .panel-body { padding: 12px 14px; }
       .alert-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -236,10 +242,10 @@
     <span class="badge badge-stable" id="h-badge">no data</span>
     <span class="badge badge-mock" id="h-mock" style="display:none;">sample data</span>
   </div>
-  <div class="h-right" style="gap:24px;">
-    <a href="./index.html" style="font-size:10px;color:var(--muted);text-decoration:none;letter-spacing:0.07em;text-transform:uppercase;transition:color 0.2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">home</a>
-    <a href="./guide.html" style="font-size:10px;color:var(--muted);text-decoration:none;letter-spacing:0.07em;text-transform:uppercase;transition:color 0.2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">manual</a>
-    <span style="font-size:10px;color:var(--yellow);letter-spacing:0.07em;text-transform:uppercase;">demo</span>
+  <div class="h-right">
+    <a class="nav-link" href="./index.html">home</a>
+    <a class="nav-link" href="./guide.html">manual</a>
+    <span class="nav-link">demo</span>
   </div>
 </div>
 

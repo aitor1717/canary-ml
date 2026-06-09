@@ -53,11 +53,9 @@
     .nav-right { display: flex; gap: 36px; align-items: center; }
     .nav-link {
       font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--muted); text-decoration: none; transition: color 0.2s;
+      color: var(--yellow); text-decoration: none; transition: color 0.2s;
     }
     .nav-link:hover { color: var(--text); }
-    .nav-link.active { color: var(--yellow); }
-    .nav-demo { color: var(--yellow); }
 
     /* LAYOUT */
     .guide-wrap {
@@ -223,8 +221,8 @@
   <a class="nav-logo" href="./index.html">canary</a>
   <div class="nav-right">
     <a class="nav-link" href="./index.html">home</a>
-    <a class="nav-link active">manual</a>
-    <a class="nav-link nav-demo" href="./demo.html">demo</a>
+    <a class="nav-link">manual</a>
+    <a class="nav-link" href="./demo.html">demo</a>
   </div>
 </nav>
 
@@ -281,10 +279,8 @@
     <div class="section" id="install">
       <div class="section-eyebrow">getting started</div>
       <h2>Installation</h2>
-      <pre><code>pip install "canary-ml[keras]"</code></pre>
-      <p>Installs canary-ml with Keras/TensorFlow support. Internally canary-ml uses <strong>numpy</strong>, <strong>scipy</strong>, <strong>scikit-learn</strong>, and <strong>rich</strong> — all standard ML tooling you likely already have.</p>
-      <p>If you don't use Keras, a minimal install works too:</p>
       <pre><code>pip install canary-ml</code></pre>
+      <p>Installs canary-ml with all dependencies: <strong>numpy</strong>, <strong>scipy</strong>, <strong>scikit-learn</strong>, <strong>rich</strong>, and <strong>tensorflow</strong> — all standard ML tooling you likely already have.</p>
     </div>
 
     <hr class="divider">
@@ -688,11 +684,12 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <table>
         <tr><th>Attribute</th><th>Type</th><th>Description</th></tr>
         <tr><td><code>psi_score</code></td><td>float</td><td>Global PSI value</td></tr>
-        <tr><td><code>drift_detected</code></td><td>bool</td><td>PSI above threshold</td></tr>
-        <tr><td><code>ks_results</code></td><td>dict</td><td>Per-feature <code>{statistic, p_value, drift}</code></td></tr>
+        <tr><td><code>drift_detected</code></td><td>bool</td><td>True if any feature's KS/chi² p &lt; 0.05</td></tr>
+        <tr><td><code>ks_results</code></td><td>dict</td><td>Per-feature <code>{statistic, p_value, drifted}</code></td></tr>
         <tr><td><code>features_drifted</code></td><td>int</td><td>Count of features with KS p &lt; 0.05</td></tr>
         <tr><td><code>anomaly_rate</code></td><td>float</td><td>Fraction of samples flagged as anomalies</td></tr>
-        <tr><td><code>alert</code></td><td>bool</td><td>True if drift_detected or anomaly_rate &gt; 5%</td></tr>
+        <tr><td><code>alert_triggered</code></td><td>bool</td><td>True if PSI &gt; threshold, anomaly rate is high, or performance drops</td></tr>
+        <tr><td><code>alert_reasons</code></td><td>list</td><td>Which conditions fired: <code>"drift"</code>, <code>"anomaly"</code>, <code>"performance"</code></td></tr>
         <tr><td><code>timestamp</code></td><td>str</td><td>ISO 8601 timestamp</td></tr>
       </table>
     </div>
@@ -742,12 +739,12 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
   <span class="st">"psi_score"</span>: <span class="nu">0.41</span>,
   <span class="st">"drift_detected"</span>: <span class="kw">true</span>,
   <span class="st">"ks_results"</span>: {
-    <span class="st">"0"</span>: {<span class="st">"statistic"</span>: <span class="nu">0.38</span>, <span class="st">"p_value"</span>: <span class="nu">0.001</span>, <span class="st">"drift"</span>: <span class="kw">true</span>},
-    <span class="st">"1"</span>: {<span class="st">"statistic"</span>: <span class="nu">0.04</span>, <span class="st">"p_value"</span>: <span class="nu">0.88</span>,  <span class="st">"drift"</span>: <span class="kw">false</span>}
+    <span class="st">"0"</span>: {<span class="st">"statistic"</span>: <span class="nu">0.38</span>, <span class="st">"p_value"</span>: <span class="nu">0.001</span>, <span class="st">"drifted"</span>: <span class="kw">true</span>},
+    <span class="st">"1"</span>: {<span class="st">"statistic"</span>: <span class="nu">0.04</span>, <span class="st">"p_value"</span>: <span class="nu">0.88</span>,  <span class="st">"drifted"</span>: <span class="kw">false</span>}
   },
   <span class="st">"features_drifted"</span>: <span class="nu">1</span>,
   <span class="st">"anomaly_rate"</span>: <span class="nu">0.032</span>,
-  <span class="st">"alert"</span>: <span class="kw">true</span>,
+  <span class="st">"alert_triggered"</span>: <span class="kw">true</span>,
   <span class="st">"feature_sample"</span>: [[...], ...]  <span class="cm">// up to 500 rows of raw input</span>
 }</code></pre>
 
