@@ -186,7 +186,7 @@
     .tb-marker { position: absolute; top: -3px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg); background: var(--text); transform: translateX(-50%); }
 
     /* FLOW DIAGRAM */
-    .flow { display: flex; align-items: center; gap: 0; margin: 20px 0 28px; flex-wrap: wrap; }
+    .flow { display: flex; align-items: center; gap: 0; margin: 20px 0 28px; overflow-x: auto; padding-bottom: 4px; }
     .flow-step {
       background: var(--surface); border: 1px solid var(--hi);
       padding: 12px 18px; border-radius: 4px; font-size: 11px;
@@ -261,6 +261,9 @@
       <a class="sidebar-link" href="#api">Full API</a>
       <a class="sidebar-link" href="#log">Log format</a>
     </div>
+    <div class="sidebar-section">
+      <a class="sidebar-link" href="#credits">Credits</a>
+    </div>
   </aside>
 
   <!-- CONTENT -->
@@ -282,10 +285,10 @@
     <div class="section" id="install">
       <div class="section-eyebrow">getting started</div>
       <h2>Installation</h2>
-      <pre><code>pip install canary-ml</code></pre>
-      <p>That's the only dependency you'll ever need to add. Internally canary-ml uses <strong>numpy</strong>, <strong>scipy</strong>, <strong>scikit-learn</strong>, and <strong>rich</strong> — all standard ML tooling you likely already have.</p>
-      <p>If you use Keras/TensorFlow models, install the optional extra:</p>
       <pre><code>pip install "canary-ml[keras]"</code></pre>
+      <p>Installs canary-ml with Keras/TensorFlow support. Internally canary-ml uses <strong>numpy</strong>, <strong>scipy</strong>, <strong>scikit-learn</strong>, and <strong>rich</strong> — all standard ML tooling you likely already have.</p>
+      <p>If you don't use Keras, a minimal install works too:</p>
+      <pre><code>pip install canary-ml</code></pre>
     </div>
 
     <hr class="divider">
@@ -458,10 +461,10 @@
 
       <h4>Reading KS results</h4>
       <table>
-        <tr><th>Attribute</th><th>Type</th><th>What it means</th></tr>
-        <tr><td><code>statistic</code></td><td>float [0–1]</td><td>Maximum gap between CDFs. Higher = more drift.</td></tr>
-        <tr><td><code>p_value</code></td><td>float [0–1]</td><td>Probability of seeing this gap by chance. Below 0.05 = statistically significant.</td></tr>
-        <tr><td><code>drift</code></td><td>bool</td><td><code>True</code> when p_value &lt; 0.05</td></tr>
+        <tr><th>Attribute</th><th style="white-space:nowrap">Type</th><th>What it means</th></tr>
+        <tr><td><code>statistic</code></td><td style="white-space:nowrap">float [0–1]</td><td>Maximum gap between CDFs. Higher = more drift.</td></tr>
+        <tr><td><code>p_value</code></td><td style="white-space:nowrap">float [0–1]</td><td>Probability of seeing this gap by chance. Below 0.05 = statistically significant.</td></tr>
+        <tr><td><code>drift</code></td><td style="white-space:nowrap">bool</td><td><code>True</code> when p_value &lt; 0.05</td></tr>
       </table>
 
       <h4>How the heatmap uses KS</h4>
@@ -758,6 +761,15 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <div class="callout">
         <p><strong>Log rotation:</strong> canary appends forever. For long-running services, manage rotation externally (logrotate, a cron that truncates the oldest N lines, etc.). The dashboard always reads the most recent entries.</p>
       </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- CREDITS -->
+    <div class="section" id="credits">
+      <div class="section-eyebrow">credits</div>
+      <h2>Credits</h2>
+      <p>Aitor Bazo · 2026 · <a href="mailto:aitor1717@gmail.com">aitor1717@gmail.com</a></p>
     </div>
 
   </main>

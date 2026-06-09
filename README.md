@@ -7,49 +7,25 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-44%20passing-brightgreen)](tests/)
 
-One line wraps your model. Every `.predict()` call logs drift metrics, detects anomalies, and can fire an alert — without adding latency or requiring any infrastructure.
+One line wraps your model. Every `.predict()` call logs drift metrics, detects anomalies, and fires an alert when something shifts — without adding latency or requiring any infrastructure.
 
-```python
-from canary_ml import ModelMonitor
-
-monitor = ModelMonitor(model=clf, reference_data=X_train, log_path="./logs")
-predictions = monitor.predict(X_new)   # identical to clf.predict(X_new)
-```
-
-[Live demo](https://aitor1717.github.io/canary-ml/demo.html) · [Docs & guide](https://aitor1717.github.io/canary-ml/guide.html) · [Landing page](https://aitor1717.github.io/canary-ml/)
-
----
-
-## Why canary-ml
-
-Most monitoring tools need a sidecar process, a managed database, or a cloud account. canary-ml logs to a local `.jsonl` file and serves its own dashboard from a single stdlib HTTP server — nothing to deploy, nothing to pay for.
-
-| | canary-ml | Evidently | NannyML | WhyLabs |
-|---|---|---|---|---|
-| Zero infrastructure | yes | yes | yes | Cloud |
-| Single-line wrap | yes | no | no | no |
-| Ships own dashboard | yes | Report files | yes | Cloud |
-| PSI + KS + chi² | yes | yes | yes | yes |
-| Anomaly detection | yes | no | no | no |
-| CBPE (label-free perf est.) | yes | no | yes | no |
-| on_alert callback | yes | no | no | no |
-| Python-only install | yes | yes | yes | Agent |
+[Project page](https://aitor1717.github.io/canary-ml/) · [Guide & manual](https://aitor1717.github.io/canary-ml/guide.html) · [Live demo](https://aitor1717.github.io/canary-ml/demo.html)
 
 ---
 
 ## Install
 
 ```bash
+pip install "canary-ml[keras]"
+```
+
+Keras/TensorFlow support included. For a minimal install without Keras:
+
+```bash
 pip install canary-ml
 ```
 
-Requires Python 3.9+. Dependencies: numpy, scipy, scikit-learn, rich.
-
-Optional Keras support:
-
-```bash
-pip install "canary-ml[keras]"
-```
+Requires Python 3.9+. Core dependencies: numpy, scipy, scikit-learn, rich.
 
 ---
 
@@ -61,9 +37,9 @@ from canary_ml import ModelMonitor
 monitor = ModelMonitor(
     model=your_model,           # any sklearn-compatible model
     reference_data=X_train,     # baseline distribution
-    alert_threshold=0.2,        # PSI threshold for alerts (default 0.2)
-    log_path="./canary_logs",   # where to write monitor.jsonl
-    verbose=True,               # print rich alert panels to stdout
+    alert_threshold=0.2,        # PSI threshold for alerts
+    log_path="./canary_logs",
+    verbose=True,
 )
 
 # Drop-in replacement — monitoring is a side effect of predict()
@@ -74,28 +50,24 @@ report = monitor.get_report()
 print(report.summary())
 # DriftReport | psi=0.41 | features_drifted=3/8 | anomaly_rate=3.2% | ALERT
 
-# Launch the live dashboard (opens in background thread)
+# Launch the live dashboard
 monitor.serve_dashboard(port=8501)
 # → http://localhost:8501
 ```
 
 ---
 
-## How it works
+## What it monitors
 
-### Data drift (PSI + KS / chi²)
+- **PSI** — global distribution shift. < 0.1 stable · 0.1–0.2 moderate · > 0.2 alert.
+- **KS test** — per-feature Kolmogorov-Smirnov (continuous features, p < 0.05 = drift).
+- **Chi² test** — per-feature chi-squared (categorical features, ≤ 20 unique values).
+- **Anomaly detection** — ensemble of Isolation Forest + z-score (|z| > 3).
+- **CBPE** — confidence-based performance estimation without ground truth labels.
 
-Each `.predict()` call runs three tests against the reference distribution:
+---
 
-- **PSI (Population Stability Index)** — quantile-based global measure. PSI < 0.1 is stable, 0.1–0.2 is moderate, > 0.2 triggers an alert.
-- **KS test** — per-feature Kolmogorov-Smirnov test for continuous features (p < 0.05 = drift).
-- **Chi² test** — per-feature chi-squared test for categorical features (≤ 20 unique values).
-
-### Anomaly detection
-
-An ensemble of **Isolation Forest** (fitted on `reference_data`) and a **z-score detector** (flags samples where any feature exceeds |z| > 3) scores each batch. The anomaly rate is the fraction of samples flagged by either detector.
-
-### Alert callback
+## Alert callback
 
 ```python
 def my_alert(report):
@@ -104,15 +76,15 @@ def my_alert(report):
 monitor = ModelMonitor(..., on_alert=my_alert)
 ```
 
-`on_alert` fires when `psi_score > alert_threshold`. It receives the full `DriftReport`.
+---
 
-### Dashboard
+## Dashboard
 
 ```python
 monitor.serve_dashboard(port=8501)
 ```
 
-Serves a zero-dependency HTML/JS dashboard at `localhost:8501`. Auto-refreshes every 5 seconds. Shows PSI timeline, per-feature KS heatmap, distribution comparison, and alert log. Can also run standalone:
+Stdlib HTTP server, no extra dependencies. Auto-refreshes every 5 seconds. Can also run standalone:
 
 ```bash
 python -m canary_ml.server ./canary_logs 8501
@@ -130,8 +102,8 @@ ModelMonitor(
     reference_data,             # np.ndarray or pd.DataFrame, shape (n, features)
     alert_threshold=0.2,        # PSI threshold for drift alert
     performance_threshold=0.05, # accuracy drop (pp) below reference that fires a perf alert
-    log_path="./canary_logs",   # directory for monitor.jsonl and reference.json
-    verbose=False,              # print rich alert panels on alert
+    log_path="./canary_logs",
+    verbose=False,
     on_alert=None,              # callable(DriftReport) fired on alert
 )
 ```
@@ -152,32 +124,11 @@ ModelMonitor(
 | `features_drifted` | `int` | Count of features with KS p < 0.05 |
 | `anomaly_rate` | `float` | Fraction of samples flagged as anomalies |
 | `alert` | `bool` | `True` if drift_detected or anomaly_rate > 0.05 |
-| `estimated_accuracy` | `float \| None` | CBPE estimate; `None` if model has no `predict_proba` |
-| `reference_accuracy` | `float \| None` | CBPE estimate on reference data (set at init) |
+| `estimated_accuracy` | `float \| None` | CBPE estimate; `None` if no `predict_proba` |
+| `reference_accuracy` | `float \| None` | CBPE on reference data |
 | `performance_delta` | `float \| None` | `estimated_accuracy − reference_accuracy` |
 | `performance_alert` | `bool` | `True` if delta < −performance_threshold |
 | `timestamp` | `str` | ISO 8601 |
-| `.summary()` | `str` | Human-readable one-liner |
-
----
-
-## Log format
-
-`<log_path>/monitor.jsonl` — one JSON object per `.predict()` call:
-
-```json
-{
-  "timestamp": "2026-06-07T14:23:01",
-  "psi_score": 0.41,
-  "drift_detected": true,
-  "ks_results": {"0": {"statistic": 0.38, "p_value": 0.001, "drift": true}},
-  "anomaly_rate": 0.032,
-  "alert": true,
-  "feature_sample": [[...], ...]
-}
-```
-
-`<log_path>/reference.json` — up to 500 rows of baseline data for distribution comparison.
 
 ---
 
@@ -186,14 +137,8 @@ ModelMonitor(
 ```bash
 pip install -e ".[dev]"
 pytest                        # 44 tests
-pytest --cov=canary_ml        # with coverage
+pytest --cov=canary_ml
 ```
-
----
-
-## Roadmap
-
-**v1.2** — Multivariate drift detection; LLM / text input monitoring.
 
 ---
 
