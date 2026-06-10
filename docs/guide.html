@@ -346,6 +346,9 @@
         <tr><td><code>reference_data</code></td><td>required</td><td>Your training or validation data — the "normal" baseline</td></tr>
         <tr><td><code>alert_threshold</code></td><td><code>0.2</code></td><td>PSI score above which a drift alert fires</td></tr>
         <tr><td><code>performance_threshold</code></td><td><code>0.05</code></td><td>Accuracy drop (percentage points) below reference that fires a performance alert. Requires <code>predict_proba</code>.</td></tr>
+        <tr><td><code>anomaly_contamination</code></td><td><code>0.05</code></td><td>Expected fraction of anomalies; the anomaly-rate alert fires at 4× this value</td></tr>
+        <tr><td><code>categorical_threshold</code></td><td><code>20</code></td><td>Max unique values for a feature to be treated as categorical (chi² instead of KS)</td></tr>
+        <tr><td><code>store_samples</code></td><td><code>True</code></td><td>Set <code>False</code> to skip storing raw feature rows in the log (recommended in PII-sensitive environments)</td></tr>
         <tr><td><code>log_path</code></td><td><code>"./canary_logs"</code></td><td>Directory for <code>monitor.jsonl</code> and <code>reference.json</code></td></tr>
         <tr><td><code>verbose</code></td><td><code>True</code></td><td>Print a rich alert panel to stdout when an alert fires</td></tr>
         <tr><td><code>on_alert</code></td><td><code>None</code></td><td>Callback function called with the <code>DriftReport</code> on alert</td></tr>
@@ -606,9 +609,9 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <table>
         <tr><th>Card</th><th>What to look for</th></tr>
         <tr><td><strong>PSI Score</strong></td><td>Your main alarm. Green below 0.1, yellow 0.1–0.2, red above 0.2.</td></tr>
-        <tr><td><strong>KS Statistic</strong></td><td>The highest KS value across all features. Which feature is shown underneath.</td></tr>
+        <tr><td><strong>KS Statistic</strong></td><td>The highest KS value across all features. Number of features drifted is shown underneath.</td></tr>
         <tr><td><strong>Anomaly Rate</strong></td><td>Percent of input samples flagged. Normal is under 2–3%. Above 10% needs attention.</td></tr>
-        <tr><td><strong>Batch Size</strong></td><td>Number of samples in the last prediction call. Very small batches make statistical tests unreliable.</td></tr>
+        <tr><td><strong>Est. Accuracy</strong></td><td>Confidence-based accuracy estimate (CBPE) and its delta vs. reference. Shows <code>—</code> if the model has no <code>predict_proba</code>.</td></tr>
       </table>
 
       <div class="callout">
@@ -622,7 +625,7 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
     <div class="section" id="timeline">
       <div class="section-eyebrow">reading the dashboard</div>
       <h2>Drift timeline</h2>
-      <p>The timeline shows PSI score (yellow) and anomaly rate (violet) across the last 30 batches. It's your first signal that something is changing over time.</p>
+      <p>The timeline shows PSI score (yellow) and anomaly rate (violet) across the last 50 batches. It's your first signal that something is changing over time.</p>
 
       <h4>Patterns to watch for</h4>
       <ul>
@@ -645,13 +648,11 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <table>
         <tr><th>Color</th><th>KS range</th><th>Meaning</th></tr>
         <tr><td style="color:var(--green);">Green</td><td>0 – 0.05</td><td>Stable. This feature looks like training data.</td></tr>
-        <tr><td style="color:var(--yellow);">Yellow</td><td>0.05 – 0.15</td><td>Mild shift. Worth watching, not alarming.</td></tr>
-        <tr><td style="color:#e07030;">Orange</td><td>0.15 – 0.25</td><td>Significant drift on this feature.</td></tr>
-        <tr><td style="color:var(--red);">Red</td><td>0.25+</td><td>Severe drift. This feature is a likely driver of the PSI alert.</td></tr>
+        <tr><td style="color:var(--yellow);">Yellow</td><td>0.05 – 0.2</td><td>Mild to moderate shift. Worth watching.</td></tr>
+        <tr><td style="color:var(--red);">Red</td><td>0.2+</td><td>Severe drift. This feature is a likely driver of the PSI alert.</td></tr>
       </table>
 
-      <h4>Clicking a row</h4>
-      <p>Clicking any feature row in the heatmap selects it and updates the <strong>Distribution Shift</strong> panel to show that feature's baseline vs. current distribution. Use this to understand what's actually different about the values.</p>
+      <p>Each row shows one feature's full history — nothing in the heatmap is selectable or reorderable. The <strong>Distribution Shift</strong> panel below always shows the three features with the highest current KS statistic.</p>
     </div>
 
     <hr class="divider">
@@ -670,7 +671,7 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <h4>What to look for</h4>
       <p>A simple horizontal shift (mean moved right or left) suggests the feature values have scaled or changed range — possible encoding issue or data source change. A change in shape (one peak becoming two) suggests the model is now seeing a different mix of populations. A very flat current curve with narrow baseline suggests sparse or clipped new data.</p>
 
-      <p>The three rows shown are: the currently selected feature, plus the two features with the highest KS statistics. These are your most-drifted features at this moment.</p>
+      <p>The three rows shown are the features with the highest KS statistics in the latest batch — your most-drifted features at this moment.</p>
     </div>
 
     <hr class="divider">
@@ -721,7 +722,12 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <pre><code><span class="id">monitor</span> = <span class="cy">ModelMonitor</span>(
     model,                      <span class="cm"># required — .predict()-compatible</span>
     reference_data,             <span class="cm"># required — np.ndarray or pd.DataFrame</span>
+    feature_names=<span class="kw">None</span>,         <span class="cm"># optional column names, used by the dashboard</span>
     alert_threshold=<span class="nu">0.2</span>,        <span class="cm"># PSI threshold for alert</span>
+    performance_threshold=<span class="nu">0.05</span>, <span class="cm"># accuracy drop (pp) that fires a perf alert</span>
+    anomaly_contamination=<span class="nu">0.05</span>, <span class="cm"># expected fraction of anomalies; alert at 4x</span>
+    categorical_threshold=<span class="nu">20</span>,   <span class="cm"># max unique values to treat a feature as categorical</span>
+    store_samples=<span class="kw">True</span>,         <span class="cm"># False to skip storing raw feature rows</span>
     log_path=<span class="st">"./canary_logs"</span>,   <span class="cm"># where to write logs</span>
     verbose=<span class="kw">True</span>,               <span class="cm"># default True — set False to suppress output</span>
     on_alert=<span class="kw">None</span>,              <span class="cm"># callable(DriftReport)</span>
@@ -730,9 +736,12 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
       <table>
         <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
         <tr><td><code>.predict(X)</code></td><td>model output</td><td>Run prediction + monitoring. Monitoring never raises.</td></tr>
+        <tr><td><code>.predict_proba(X)</code></td><td>model output</td><td>Passthrough to <code>model.predict_proba()</code>; also feeds the confidence estimate.</td></tr>
         <tr><td><code>.wait()</code></td><td>—</td><td>Block until background monitoring completes. Call before <code>get_report()</code> in scripts.</td></tr>
         <tr><td><code>.get_report()</code></td><td><code>DriftReport | None</code></td><td>Latest monitoring report. None if no predictions yet.</td></tr>
-        <tr><td><code>.serve_dashboard(port=8501)</code></td><td>—</td><td>Start dashboard in daemon thread. Non-blocking.</td></tr>
+        <tr><td><code>.get_history(n=50)</code></td><td><code>list[dict]</code></td><td>Last <em>n</em> raw log entries.</td></tr>
+        <tr><td><code>.reset_baseline(new_data)</code></td><td>—</td><td>Replace the reference distribution and refit the anomaly detector.</td></tr>
+        <tr><td><code>.serve_dashboard(port=8501, host="127.0.0.1")</code></td><td>—</td><td>Start dashboard in a daemon thread. Non-blocking. Use <code>host="0.0.0.0"</code> to expose it beyond localhost — only if you understand the logged data may include raw features.</td></tr>
       </table>
 
       <h3>Standalone server</h3>

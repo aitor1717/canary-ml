@@ -129,10 +129,8 @@
     .hm-time-lbl { font-size: 8px; color: var(--muted); text-align: center; }
     .hm-row {
       display: grid; gap: 2px; margin-bottom: 2px;
-      cursor: pointer; border-radius: 2px;
+      border-radius: 2px;
     }
-    .hm-row:hover .hm-name { color: var(--text); }
-    .hm-row.sel .hm-name   { color: var(--yellow); }
     .hm-name {
       font-size: 10px; color: var(--muted);
       display: flex; align-items: center;
@@ -144,7 +142,6 @@
       background: var(--borderHi);
       border: 1px solid transparent; transition: border-color 0.2s;
     }
-    .hm-row.sel .hm-cell:last-child { border-color: rgba(212,168,39,0.6); }
     .hm-legend {
       display: flex; align-items: center; gap: 10px;
       margin-top: 14px; font-size: 9px; color: var(--muted);
@@ -377,7 +374,7 @@ const C = {
 // ─────────────────────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────────────────────
-const S = { entries: [], reference: null, selFeature: 0, isMock: false, reference_accuracy: null };
+const S = { entries: [], reference: null, isMock: false, reference_accuracy: null };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MOCK DATA (used when server is unreachable — for visual development)
@@ -703,10 +700,9 @@ function renderHeatmap() {
   batchLabels.forEach(l => { html += `<div class="hm-time-lbl">${l}</div>`; });
   html += '</div>';
 
-  keys.forEach((k, ri) => {
-    const sel = ri === S.selFeature ? ' sel' : '';
+  keys.forEach(k => {
     const name = featName(k, fnames);
-    html += `<div class="hm-row${sel}" style="grid-template-columns:${colsTemplate};" onclick="selectFeature(${ri})">`;
+    html += `<div class="hm-row" style="grid-template-columns:${colsTemplate};">`;
     html += `<div class="hm-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>`;
     entries.forEach(e => {
       const ks = e.ks_results?.[k]?.statistic || 0;
@@ -761,11 +757,10 @@ function renderDistributions() {
   if (!ksKeys.length) return;
 
   const fnames   = latest.feature_names || null;
-  const selKey   = ksKeys[S.selFeature] ?? ksKeys[0];
   const byKs     = [...ksKeys].sort((a, b) =>
     (latest.ks_results[b]?.statistic || 0) - (latest.ks_results[a]?.statistic || 0)
   );
-  const showKeys = [selKey, ...byKs.filter(k => k !== selKey)].slice(0, 3);
+  const showKeys = byKs.slice(0, 3);
 
   const currRaw = latest.feature_sample
     ? latest.feature_sample.map(r => Array.isArray(r) ? r : [r])
@@ -1048,15 +1043,6 @@ function renderAlerts() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FEATURE SELECTION
-// ─────────────────────────────────────────────────────────────────────────────
-function selectFeature(i) {
-  S.selFeature = i;
-  renderHeatmap();
-  renderDistributions();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // RENDER
 // ─────────────────────────────────────────────────────────────────────────────
 function render() {
@@ -1096,10 +1082,9 @@ window.addEventListener('resize', () => {
     const latest = S.entries[S.entries.length - 1];
     if (!latest) return;
     const keys    = Object.keys(latest.ks_results || {});
-    const selKey  = keys[S.selFeature] ?? keys[0];
     const byKs    = [...keys].sort((a, b) =>
       (latest.ks_results[b]?.statistic || 0) - (latest.ks_results[a]?.statistic || 0));
-    const showKeys = [selKey, ...byKs.filter(k => k !== selKey)].slice(0, 3);
+    const showKeys = byKs.slice(0, 3);
     const k = showKeys[i]; if (!k) return;
     const col   = parseInt(k);
     const currRaw = latest.feature_sample?.map(r => Array.isArray(r) ? r : [r]) || [];

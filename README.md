@@ -115,9 +115,12 @@ ModelMonitor(
 | Method | Returns | Description |
 |---|---|---|
 | `.predict(X)` | same as model | Runs model; monitoring queued in background thread |
+| `.predict_proba(X)` | same as model | Passthrough to `model.predict_proba()`; also feeds the confidence estimate |
 | `.wait()` | — | Block until background monitoring tasks complete |
 | `.get_report()` | `DriftReport \| None` | Latest monitoring report |
-| `.serve_dashboard(port=8501)` | — | Starts dashboard server in background thread |
+| `.get_history(n=50)` | `list[dict]` | Last *n* raw log entries |
+| `.reset_baseline(new_data)` | — | Replace the reference distribution and refit the anomaly detector |
+| `.serve_dashboard(port=8501, host="127.0.0.1")` | — | Starts dashboard server in background thread. Use `host="0.0.0.0"` to expose beyond localhost |
 
 ### `DriftReport`
 

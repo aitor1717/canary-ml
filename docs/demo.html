@@ -134,14 +134,10 @@
     .dist-canvas { max-width: 100%; }
 
     /* ── HEATMAP ─────────────────────────────────────────────────────────── */
-    .hm-time-row { display: grid; gap: 2px; margin-bottom: 5px; }
-    .hm-time-lbl { font-size: 8px; color: var(--muted); text-align: center; }
     .hm-row {
       display: grid; gap: 2px; margin-bottom: 2px;
-      cursor: pointer; border-radius: 2px;
+      border-radius: 2px;
     }
-    .hm-row:hover .hm-name { color: var(--text); }
-    .hm-row.sel .hm-name   { color: var(--yellow); }
     .hm-name {
       font-size: 10px; color: var(--muted);
       display: flex; align-items: center;
@@ -153,7 +149,6 @@
       background: var(--borderHi);
       border: 1px solid transparent; transition: border-color 0.2s;
     }
-    .hm-row.sel .hm-cell:last-child { border-color: rgba(212,168,39,0.6); }
     .hm-legend {
       display: flex; align-items: center; gap: 10px;
       margin-top: 14px; font-size: 9px; color: var(--muted);
@@ -381,7 +376,7 @@ const C = {
 // ─────────────────────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────────────────────
-const S = { entries: [], reference: null, selFeature: 0, isMock: false, reference_accuracy: null };
+const S = { entries: [], reference: null, isMock: false, reference_accuracy: null };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MOCK DATA (used when server is unreachable — for visual development)
@@ -682,27 +677,17 @@ function renderHeatmap() {
     for (const k of Object.keys(e.ks_results || {}))
       if (!keys.includes(k)) keys.push(k);
 
-  const totalBatches = S.entries.length;
-  const startIdx     = totalBatches - entries.length;
-  const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
   const panelW  = el.getBoundingClientRect().width || 600;
   const nameW   = panelW < 480 ? 60 : 110;
   const gapPx   = entries.length * 2;
   const cellW   = Math.max(2, (panelW - nameW - 10 - gapPx) / entries.length);
   const colsTemplate = `${nameW}px repeat(${entries.length}, ${cellW}px)`;
 
-  // Thin out labels when cells are too narrow for "B##" to fit without overlapping.
-  const labelStep = Math.max(1, Math.ceil(16 / (cellW + 2)));
+  let html = '';
 
-  let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
-  html += '<div></div>';
-  batchLabels.forEach((l, i) => { html += `<div class="hm-time-lbl">${i % labelStep === 0 ? l : ''}</div>`; });
-  html += '</div>';
-
-  keys.forEach((k, ri) => {
-    const sel = ri === S.selFeature ? ' sel' : '';
+  keys.forEach(k => {
     const name = featName(k, fnames);
-    html += `<div class="hm-row${sel}" style="grid-template-columns:${colsTemplate};" onclick="selectFeature(${ri})">`;
+    html += `<div class="hm-row" style="grid-template-columns:${colsTemplate};">`;
     html += `<div class="hm-name" title="${name}">${name}</div>`;
     entries.forEach(e => {
       const ks = e.ks_results?.[k]?.statistic || 0;
@@ -759,11 +744,10 @@ function renderDistributions() {
   if (!ksKeys.length) return;
 
   const fnames   = latest.feature_names || null;
-  const selKey   = ksKeys[S.selFeature] ?? ksKeys[0];
   const byKs     = [...ksKeys].sort((a, b) =>
     (latest.ks_results[b]?.statistic || 0) - (latest.ks_results[a]?.statistic || 0)
   );
-  const showKeys = [selKey, ...byKs.filter(k => k !== selKey)].slice(0, 3);
+  const showKeys = byKs.slice(0, 3);
 
   const currRaw = latest.feature_sample
     ? latest.feature_sample.map(r => Array.isArray(r) ? r : [r])
@@ -1041,15 +1025,6 @@ function renderAlerts() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FEATURE SELECTION
-// ─────────────────────────────────────────────────────────────────────────────
-function selectFeature(i) {
-  S.selFeature = i;
-  renderHeatmap();
-  renderDistributions();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // RENDER
 // ─────────────────────────────────────────────────────────────────────────────
 function render() {
@@ -1093,10 +1068,9 @@ window.addEventListener('resize', () => {
     const latest = S.entries[S.entries.length - 1];
     if (!latest) return;
     const keys    = Object.keys(latest.ks_results || {});
-    const selKey  = keys[S.selFeature] ?? keys[0];
     const byKs    = [...keys].sort((a, b) =>
       (latest.ks_results[b]?.statistic || 0) - (latest.ks_results[a]?.statistic || 0));
-    const showKeys = [selKey, ...byKs.filter(k => k !== selKey)].slice(0, 3);
+    const showKeys = byKs.slice(0, 3);
     const k = showKeys[i]; if (!k) return;
     const col   = parseInt(k);
     const currRaw = latest.feature_sample?.map(r => Array.isArray(r) ? r : [r]) || [];

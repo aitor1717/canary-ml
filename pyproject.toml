@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "canary-ml"
-version = "1.2.4"
+version = "1.2.5"
 description = "Drift and anomaly monitoring for production scikit-learn and Keras/TensorFlow models."
 readme = "README.md"
 license = "MIT"
