@@ -12,13 +12,13 @@ try:
     from tensorflow import keras
 except ImportError:
     raise SystemExit(
-        "TensorFlow is not installed. Run: pip install canary-ml"
+        "TensorFlow is not installed. Run: pip install 'canary-ml[keras]'"
     )
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 data = load_breast_cancer()
 X, y = data.data, data.target
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.7, random_state=42)
 
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
@@ -26,7 +26,8 @@ X_test  = scaler.transform(X_test)
 
 # ── Build & train MLP ─────────────────────────────────────────────────────────
 model = keras.Sequential([
-    keras.layers.Dense(64, activation="relu", input_shape=(X_train.shape[1],)),
+    keras.Input(shape=(X_train.shape[1],)),
+    keras.layers.Dense(64, activation="relu"),
     keras.layers.Dense(32, activation="relu"),
     keras.layers.Dense(1,  activation="sigmoid"),
 ])
@@ -42,7 +43,8 @@ monitor = ModelMonitor(
 )
 
 print("\n--- Clean batch ---")
-preds = monitor.predict(X_test[:50])
+preds = monitor.predict(X_test[:200])
+monitor.wait()  # monitoring runs in background — wait before reading the report
 print(monitor.get_report().summary())
 
 # Introduce drift
@@ -53,6 +55,7 @@ for col in [0, 1, 2]:
 
 print("\n--- Drifted batch ---")
 monitor.predict(X_drifted)
+monitor.wait()
 print(monitor.get_report().summary())
 
 monitor.serve_dashboard(port=8502)

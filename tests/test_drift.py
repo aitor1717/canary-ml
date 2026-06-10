@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from canary_ml.drift import ks_drift, psi_score
+from canary_ml.drift import ks_drift, psi_score, chi2_drift, detect_drift
 
 
 rng = np.random.default_rng(0)
@@ -57,3 +57,44 @@ def test_psi_edge_case_single_sample():
     cur = rng.normal(0, 1, (1, 3))
     score = psi_score(ref, cur)
     assert isinstance(score, float)
+
+
+# ── chi2_drift ────────────────────────────────────────────────────────────────
+
+def make_categorical(n=200, n_cats=5):
+    """Return (ref, cur) arrays with integer categories 0..n_cats-1."""
+    ref = rng.integers(0, n_cats, (n, 2)).astype(float)
+    cur = rng.integers(0, n_cats, (n, 2)).astype(float)
+    return ref, cur
+
+
+def test_chi2_no_drift_on_identical():
+    ref, _ = make_categorical()
+    results = chi2_drift(ref, ref.copy())
+    for v in results.values():
+        assert not v["drifted"], "Identical categorical distributions should not flag drift"
+
+
+def test_chi2_flags_drift_on_clear_shift():
+    ref, _ = make_categorical(n_cats=5)
+    # All current samples go into category 0 — maximally different from uniform ref
+    cur = np.zeros((200, 2), dtype=float)
+    results = chi2_drift(ref, cur)
+    drifted = [v["drifted"] for v in results.values()]
+    assert any(drifted), "All-one-category current vs uniform ref should flag chi2 drift"
+
+
+def test_chi2_results_have_required_keys():
+    ref, cur = make_categorical()
+    results = chi2_drift(ref, cur)
+    for v in results.values():
+        assert "statistic" in v and "p_value" in v and "drifted" in v
+
+
+def test_detect_drift_routes_categorical_to_chi2():
+    """detect_drift should use chi2 for low-cardinality features."""
+    ref, cur = make_categorical(n_cats=5)
+    psi, ks_results = detect_drift(ref, cur, categorical_threshold=20)
+    # Low-cardinality → chi2 — results should still have the standard keys
+    for v in ks_results.values():
+        assert "statistic" in v and "p_value" in v and "drifted" in v

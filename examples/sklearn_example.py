@@ -10,7 +10,7 @@ from canary_ml import ModelMonitor
 # ── Train ─────────────────────────────────────────────────────────────────────
 data = load_breast_cancer()
 X, y = data.data, data.target
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.7, random_state=42)
 
 clf = RandomForestClassifier(n_estimators=100, random_state=42)
 clf.fit(X_train, y_train)
@@ -23,9 +23,9 @@ monitor = ModelMonitor(
 )
 
 # ── Clean batch — no alert expected ──────────────────────────────────────────
-# Use at least 200 samples for reliable PSI; smaller batches produce false alarms.
 print("\n--- Clean batch (no drift expected) ---")
 preds_clean = monitor.predict(X_test[:200])
+monitor.wait()  # monitoring runs in background — wait before reading the report
 report = monitor.get_report()
 print(report.summary())
 
@@ -38,6 +38,7 @@ for col in drift_cols:
     X_drifted[:, col] = X_drifted[:, col] * 1.5 + rng.normal(0, 0.5, len(X_drifted))
 
 preds_drifted = monitor.predict(X_drifted)
+monitor.wait()
 report = monitor.get_report()
 print(report.summary())
 

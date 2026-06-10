@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/canary-ml)](https://pypi.org/project/canary-ml/)
 [![Python](https://img.shields.io/pypi/pyversions/canary-ml)](https://pypi.org/project/canary-ml/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-52%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-56%20passing-brightgreen)](tests/)
 
 One line wraps your model. Every `.predict()` call logs drift metrics, detects anomalies, and fires an alert when something shifts. Monitoring runs in a background thread — your inference latency is unaffected. No infrastructure required.
 
@@ -19,7 +19,13 @@ One line wraps your model. Every `.predict()` call logs drift metrics, detects a
 pip install canary-ml
 ```
 
-Requires Python 3.9+. Dependencies: numpy, scipy, scikit-learn, rich, tensorflow.
+Requires Python 3.9–3.12. Dependencies: numpy, scipy, scikit-learn, rich.
+
+Keras/TensorFlow model monitoring also requires TensorFlow (Python 3.9–3.12 only):
+
+```bash
+pip install canary-ml[keras]
+```
 
 ---
 
@@ -38,6 +44,7 @@ monitor = ModelMonitor(
 
 # Drop-in replacement — monitoring runs in the background
 predictions = monitor.predict(X_new)
+monitor.wait()  # block until background thread finishes
 
 # Inspect the latest report
 report = monitor.get_report()
@@ -100,7 +107,7 @@ ModelMonitor(
     categorical_threshold=20,   # max unique values for a feature to be treated as categorical
     store_samples=True,         # set False to skip storing raw feature rows (recommended in PII-sensitive envs)
     log_path="./canary_logs",
-    verbose=False,
+    verbose=True,               # default True — set False to suppress console output
     on_alert=None,              # callable(DriftReport) fired on alert
 )
 ```
@@ -108,6 +115,7 @@ ModelMonitor(
 | Method | Returns | Description |
 |---|---|---|
 | `.predict(X)` | same as model | Runs model; monitoring queued in background thread |
+| `.wait()` | — | Block until background monitoring tasks complete |
 | `.get_report()` | `DriftReport \| None` | Latest monitoring report |
 | `.serve_dashboard(port=8501)` | — | Starts dashboard server in background thread |
 
@@ -125,6 +133,7 @@ ModelMonitor(
 | `estimated_accuracy` | `float \| None` | Confidence estimate; `None` if no `predict_proba` |
 | `reference_accuracy` | `float \| None` | Confidence estimate on reference data |
 | `performance_delta` | `float \| None` | `estimated_accuracy − reference_accuracy` |
+| `output_ks` | `dict\|None` | KS test on prediction distribution vs. reference; `None` if unavailable |
 | `performance_alert` | `bool` | `True` if delta < −performance_threshold |
 | `timestamp` | `str` | ISO 8601 |
 

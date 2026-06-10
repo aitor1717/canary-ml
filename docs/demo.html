@@ -39,6 +39,7 @@
     /* ── HEADER ──────────────────────────────────────────────────────────── */
     #header {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 70px;
       background: rgba(13,13,11,0.92);
       border-bottom: 1px solid var(--border);
       padding: 18px 52px;
@@ -78,7 +79,7 @@
     @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
 
     /* ── LAYOUT ──────────────────────────────────────────────────────────── */
-    #main { padding: 72px 24px 20px; max-width: 1440px; margin: 0 auto; }
+    #main { padding: 90px 24px 20px; max-width: 1440px; margin: 0 auto; }
 
     /* ── CARDS ───────────────────────────────────────────────────────────── */
     #cards {
@@ -213,17 +214,19 @@
     }
 
     @media (max-width: 860px) {
+      #header { padding: 14px 20px; height: 62px; }
       #cards  { grid-template-columns: repeat(2,1fr); }
+      #heatmap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     }
 
     @media (max-width: 500px) {
-      #header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 14px; }
+      #header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 14px; height: auto; }
       .h-right { width: 100%; display: flex; align-items: center; justify-content: flex-end; }
       #cards { grid-template-columns: repeat(2,1fr); gap: 1px; }
       #perf-timeline { height: 80px; }
       .card { padding: 12px 14px; }
       .card-value { font-size: 28px; }
-      #main { padding: 72px 12px 12px; gap: 12px; }
+      #main { padding: 85px 12px 12px; gap: 12px; }
       .panel-hdr { padding: 10px 14px; }
       .panel-body { padding: 12px 14px; }
       .alert-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -682,14 +685,17 @@ function renderHeatmap() {
   const startIdx     = totalBatches - entries.length;
   const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
   const nameW   = 110;
-  const panelW  = el.parentElement?.getBoundingClientRect().width || 600;
+  const panelW  = el.getBoundingClientRect().width || 600;
   const gapPx   = entries.length * 2;
-  const cellW   = Math.max(8, Math.floor((panelW - nameW - 40 - gapPx) / entries.length));
+  const cellW   = Math.max(8, (panelW - nameW - 10 - gapPx) / entries.length);
   const colsTemplate = `${nameW}px repeat(${entries.length}, ${cellW}px)`;
+
+  // Thin out labels when cells are too narrow for "B##" to fit without overlapping.
+  const labelStep = Math.max(1, Math.ceil(16 / (cellW + 2)));
 
   let html = `<div class="hm-time-row" style="grid-template-columns:${colsTemplate};">`;
   html += '<div></div>';
-  batchLabels.forEach(l => { html += `<div class="hm-time-lbl">${l}</div>`; });
+  batchLabels.forEach((l, i) => { html += `<div class="hm-time-lbl">${i % labelStep === 0 ? l : ''}</div>`; });
   html += '</div>';
 
   keys.forEach((k, ri) => {
@@ -1053,11 +1059,15 @@ function render() {
 
   renderHeader();
   renderCards();
-  drawTimeline();
-  renderPerformance();
-  renderHeatmap();
-  renderDistributions();
   renderAlerts();
+  // Defer canvas rendering until after the browser has laid out the now-visible
+  // #main element — ensures getBoundingClientRect() returns correct dimensions.
+  requestAnimationFrame(() => {
+    drawTimeline();
+    renderPerformance();
+    renderHeatmap();
+    renderDistributions();
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

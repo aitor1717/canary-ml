@@ -34,11 +34,13 @@
       font-family: 'Fira Code', monospace;
       font-size: 13px;
       line-height: 1.7;
+      overflow-x: hidden;
     }
 
     /* NAV */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 70px;
       display: flex; align-items: center; justify-content: space-between;
       padding: 18px 52px;
       background: rgba(13,13,11,0.92);
@@ -207,11 +209,19 @@
     li strong { color: #e8e4d2; }
 
     @media (max-width: 860px) {
-      nav { padding: 14px 20px; }
+      nav { padding: 14px 20px; height: 62px; }
       .guide-wrap { grid-template-columns: 1fr; }
       .sidebar { display: none; }
-      .content { padding: 36px 20px 72px; }
+      .content { padding: 36px 20px 72px; max-width: 100%; }
       h2 { font-size: 28px; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .metric-row { grid-template-columns: repeat(2, 1fr); }
+      .flow { max-width: 100%; }
+      pre { max-width: 100%; }
+    }
+
+    @media (max-width: 420px) {
+      .metric-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -280,7 +290,10 @@
       <div class="section-eyebrow">getting started</div>
       <h2>Installation</h2>
       <pre><code>pip install canary-ml</code></pre>
-      <p>Installs canary-ml with all dependencies: <strong>numpy</strong>, <strong>scipy</strong>, <strong>scikit-learn</strong>, <strong>rich</strong>, and <strong>tensorflow</strong> — all standard ML tooling you likely already have.</p>
+      <p>Installs canary-ml with its core dependencies: <strong>numpy</strong>, <strong>scipy</strong>, <strong>scikit-learn</strong>, and <strong>rich</strong>. Requires Python 3.9–3.12.</p>
+      <p>Keras/TensorFlow model monitoring requires an additional install:</p>
+      <pre><code>pip install canary-ml[keras]</code></pre>
+      <p>If you pass a Keras model without TensorFlow installed, canary-ml raises a clear <code>ImportError</code> with the install command.</p>
     </div>
 
     <hr class="divider">
@@ -306,12 +319,15 @@
 <span class="cm"># 2. Use exactly as before — monitoring is a side effect</span>
 <span class="id">predictions</span> = <span class="id">monitor</span>.<span class="cy">predict</span>(<span class="id">X_new</span>)
 
-<span class="cm"># 3. Inspect the latest report</span>
+<span class="cm"># 3. In scripts: wait for the background thread before reading</span>
+<span class="id">monitor</span>.<span class="cy">wait</span>()
+
+<span class="cm"># 4. Inspect the latest report</span>
 <span class="id">report</span> = <span class="id">monitor</span>.<span class="cy">get_report</span>()
 <span class="kw">print</span>(<span class="id">report</span>.<span class="cy">summary</span>())
 <span class="cm"># DriftReport | psi=0.41 | features_drifted=3/8 | anomaly_rate=3.2% | ALERT</span>
 
-<span class="cm"># 4. Open the dashboard</span>
+<span class="cm"># 5. Open the dashboard</span>
 <span class="id">monitor</span>.<span class="cy">serve_dashboard</span>(port=<span class="nu">8501</span>)</code></pre>
 
       <p>The model is not modified. If monitoring fails for any reason (disk full, unexpected input shape), the exception is swallowed silently and your <code>predict()</code> call returns normally. Monitoring should never break production.</p>
@@ -707,13 +723,14 @@ E[accuracy] = mean( max(probas, axis=1) )   <span class="cm"># average over batc
     reference_data,             <span class="cm"># required — np.ndarray or pd.DataFrame</span>
     alert_threshold=<span class="nu">0.2</span>,        <span class="cm"># PSI threshold for alert</span>
     log_path=<span class="st">"./canary_logs"</span>,   <span class="cm"># where to write logs</span>
-    verbose=<span class="kw">False</span>,              <span class="cm"># print rich panel on alert</span>
+    verbose=<span class="kw">True</span>,               <span class="cm"># default True — set False to suppress output</span>
     on_alert=<span class="kw">None</span>,              <span class="cm"># callable(DriftReport)</span>
 )</code></pre>
 
       <table>
         <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
         <tr><td><code>.predict(X)</code></td><td>model output</td><td>Run prediction + monitoring. Monitoring never raises.</td></tr>
+        <tr><td><code>.wait()</code></td><td>—</td><td>Block until background monitoring completes. Call before <code>get_report()</code> in scripts.</td></tr>
         <tr><td><code>.get_report()</code></td><td><code>DriftReport | None</code></td><td>Latest monitoring report. None if no predictions yet.</td></tr>
         <tr><td><code>.serve_dashboard(port=8501)</code></td><td>—</td><td>Start dashboard in daemon thread. Non-blocking.</td></tr>
       </table>

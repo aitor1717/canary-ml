@@ -48,6 +48,7 @@ class ModelMonitor:
         categorical_threshold: int = 20,
         store_samples: bool = True,
     ) -> None:
+        _check_keras_deps(model)
         self._model = model
         self._reference = np.asarray(reference_data, dtype=float)
         if self._reference.ndim == 1:
@@ -112,10 +113,17 @@ class ModelMonitor:
         with self._report_lock:
             return self._report
 
-    def _flush(self) -> None:
-        """Block until all pending monitoring tasks finish. For testing only."""
+    def wait(self) -> None:
+        """Block until all pending monitoring tasks finish.
+
+        Call after predict() in scripts or tests to ensure get_report() has data.
+        """
         self._executor.shutdown(wait=True, cancel_futures=False)
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="canary")
+
+    def _flush(self) -> None:
+        """Alias for wait(). For backwards compatibility with existing tests."""
+        self.wait()
 
     def get_history(self, n: int = 50) -> list[dict[str, Any]]:
         """Return the last *n* log entries."""
@@ -241,6 +249,18 @@ class ModelMonitor:
         sample = ref.tolist() if len(ref) <= 500 else random.sample(ref.tolist(), 500)
         ref_file = self._log_path / "reference.json"
         ref_file.write_text(json.dumps(sample))
+
+
+def _check_keras_deps(model: Any) -> None:
+    module = type(model).__module__ or ""
+    if module.startswith(("keras", "tensorflow")):
+        try:
+            import tensorflow  # noqa: F401
+        except ImportError:
+            raise ImportError(
+                "This model requires TensorFlow. Install it with: "
+                "pip install 'canary-ml[keras]'"
+            ) from None
 
 
 def _to_2d(X: Any) -> np.ndarray:

@@ -9,9 +9,7 @@
   <meta property="og:description" content="Drift and anomaly detection for production ML models. Cutting-edge performance in a wrapper, for free.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://aitor1717.github.io/canary-ml/">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="canary — ML Model Monitoring">
-  <meta name="twitter:description" content="Drift and anomaly detection for production ML models. Cutting-edge performance in a wrapper, for free.">
+  <meta property="og:image" content="https://aitor1717.github.io/canary-ml/preview.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
@@ -45,10 +43,12 @@
     /* NAV */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 70px;
       display: flex; align-items: center; justify-content: space-between;
       padding: 18px 52px;
       background: rgba(13,13,11,0.92);
       backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
     }
     .nav-logo {
       font-family: 'Barlow Condensed', sans-serif;
@@ -120,6 +120,8 @@
     }
     .copy-btn:hover { background: rgba(212,168,39,0.07); color: var(--yellow); }
     .copy-btn.copied { color: var(--yellow); }
+    .install-note { font-size: 9px; color: var(--muted); margin-top: 9px; }
+    .install-note code { color: var(--text); font-family: 'Fira Code', monospace; }
 
     /* VIZ PANEL */
     .viz-panel { background: var(--surface); border: 1px solid var(--hi); border-radius: 6px; overflow: hidden; }
@@ -230,7 +232,7 @@
     .social-icon svg { width: 13px; height: 13px; fill: currentColor; }
 
     @media (max-width: 860px) {
-      nav { padding: 14px 20px; }
+      nav { padding: 14px 20px; height: 62px; }
       .hero { grid-template-columns: 1fr; padding: 110px 20px 48px; gap: 36px; }
       h1 { font-size: clamp(52px, 14vw, 80px); }
       .stats-bar { grid-template-columns: repeat(3,1fr); }
@@ -273,7 +275,7 @@
 
 <section class="hero">
   <div class="hero-left">
-    <div class="hero-eyebrow">v1.2.2 · MIT · Python 3.9+</div>
+    <div class="hero-eyebrow">v1.2.3 · MIT · Python 3.9–3.12</div>
     <h1>CANARY</h1>
     <p class="hero-sub">Drift and anomaly detection for production ML models. <span style="color:var(--yellow)">Cutting-edge</span> performance in a wrapper, <span style="color:var(--yellow)">for free</span>.</p>
     <div class="install-row">
@@ -281,6 +283,7 @@
       <code id="icmd">pip install canary-ml</code>
       <button class="copy-btn" id="cbtn" onclick="doCopy()">copy</button>
     </div>
+    <p class="install-note">Keras/TensorFlow: <code>pip install canary-ml[keras]</code></p>
   </div>
 
   <div class="hero-right">
