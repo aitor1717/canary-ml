@@ -31,10 +31,9 @@ class DriftReport:
 
     def summary(self) -> str:
         """One-line human-readable summary."""
-        drifted = sum(1 for v in self.ks_results.values() if v.get("drifted"))
         parts = [
             f"DriftReport | psi={self.psi_score:.2f}",
-            f"features_drifted={drifted}",
+            f"features_drifted={self.features_drifted}",
             f"anomaly_rate={self.anomaly_rate * 100:.1f}%",
         ]
         if self.estimated_accuracy is not None:

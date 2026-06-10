@@ -37,7 +37,7 @@ def test_get_report_populates_after_predict(tmp_path):
     monitor = make_monitor(tmp_path)
     assert monitor.get_report() is None
     monitor.predict(X_test)
-    monitor._flush()
+    monitor.wait()
     report = monitor.get_report()
     assert report is not None
     assert report.n_samples == len(X_test)
@@ -47,7 +47,7 @@ def test_get_report_populates_after_predict(tmp_path):
 def test_log_written_to_disk(tmp_path):
     monitor = make_monitor(tmp_path)
     monitor.predict(X_test)
-    monitor._flush()
+    monitor.wait()
     log_file = tmp_path / "monitor.jsonl"
     assert log_file.exists()
     assert log_file.stat().st_size > 0
@@ -71,7 +71,7 @@ def test_predict_never_raises_even_if_internals_fail(tmp_path):
 
     # Should still return predictions without raising
     result = monitor.predict(X_test)
-    monitor._flush()
+    monitor.wait()
     assert result is not None
     assert len(result) == len(X_test)
 
@@ -80,7 +80,7 @@ def test_get_history_returns_list(tmp_path):
     monitor = make_monitor(tmp_path)
     monitor.predict(X_test)
     monitor.predict(X_test)
-    monitor._flush()
+    monitor.wait()
     history = monitor.get_history(n=5)
     assert isinstance(history, list)
     assert len(history) <= 5

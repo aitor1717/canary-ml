@@ -1,13 +1,14 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "canary-ml"
-version = "1.2.3"
+version = "1.2.4"
 description = "Drift and anomaly monitoring for production scikit-learn and Keras/TensorFlow models."
 readme = "README.md"
 license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9,<3.13"
 dependencies = [
     "numpy>=1.24",

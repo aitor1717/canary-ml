@@ -11,7 +11,7 @@ _console = Console()
 
 def format_alert(report: DriftReport) -> None:
     """Print a rich-formatted alert panel to the terminal."""
-    drifted = sum(1 for v in report.ks_results.values() if v.get("drifted"))
+    drifted = report.features_drifted
 
     if report.alert_triggered:
         reasons = report.alert_reasons

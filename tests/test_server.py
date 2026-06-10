@@ -36,7 +36,7 @@ def live_server(tmp_path_factory):
     )
     monitor.predict(rng.normal(0, 1, (30, 4)))
     monitor.predict(rng.normal(2, 1, (30, 4)))  # drifted batch
-    monitor._flush()  # ensure both batches are written before server starts
+    monitor.wait()  # ensure both batches are written before server starts
 
     start_server(log, port=PORT)
     # Brief wait for the daemon thread to bind

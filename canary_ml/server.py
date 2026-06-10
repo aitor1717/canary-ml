@@ -65,13 +65,25 @@ class _Handler(BaseHTTPRequestHandler):
         pass
 
 
-def start(log_path: str | Path, port: int = 8501, *, block: bool = False) -> HTTPServer:
+def start(
+    log_path: str | Path,
+    port: int = 8501,
+    *,
+    host: str = "127.0.0.1",
+    block: bool = False,
+) -> HTTPServer:
     """Start the canary dashboard server.
+
+    host="127.0.0.1" (default): localhost-only, matching the printed URL.
+    Pass host="0.0.0.0" to make the dashboard reachable from other machines
+    on the network — only do this if you understand that monitor.jsonl
+    (and the unauthenticated /api/data, /api/reference endpoints) may
+    contain raw feature data.
 
     block=False (default): runs in a daemon thread — use inside ModelMonitor.
     block=True: blocks the calling thread — use when running as __main__.
     """
-    server = HTTPServer(("", port), _Handler)
+    server = HTTPServer((host, port), _Handler)
     server.log_path = str(log_path)
     if block:
         server.serve_forever()

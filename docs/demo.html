@@ -10,6 +10,8 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html { -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
+
     :root {
       --bg:        #0d0d0b;
       --surface:   #131310;
@@ -216,7 +218,6 @@
     @media (max-width: 860px) {
       #header { padding: 14px 20px; height: 62px; }
       #cards  { grid-template-columns: repeat(2,1fr); }
-      #heatmap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     }
 
     @media (max-width: 500px) {
@@ -684,10 +685,10 @@ function renderHeatmap() {
   const totalBatches = S.entries.length;
   const startIdx     = totalBatches - entries.length;
   const batchLabels  = entries.map((_, i) => `B${startIdx + i + 1}`);
-  const nameW   = 110;
   const panelW  = el.getBoundingClientRect().width || 600;
+  const nameW   = panelW < 480 ? 60 : 110;
   const gapPx   = entries.length * 2;
-  const cellW   = Math.max(8, (panelW - nameW - 10 - gapPx) / entries.length);
+  const cellW   = Math.max(2, (panelW - nameW - 10 - gapPx) / entries.length);
   const colsTemplate = `${nameW}px repeat(${entries.length}, ${cellW}px)`;
 
   // Thin out labels when cells are too narrow for "B##" to fit without overlapping.

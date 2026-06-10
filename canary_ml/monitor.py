@@ -121,10 +121,6 @@ class ModelMonitor:
         self._executor.shutdown(wait=True, cancel_futures=False)
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="canary")
 
-    def _flush(self) -> None:
-        """Alias for wait(). For backwards compatibility with existing tests."""
-        self.wait()
-
     def get_history(self, n: int = 50) -> list[dict[str, Any]]:
         """Return the last *n* log entries."""
         return self._log.read_last(n)
@@ -138,10 +134,21 @@ class ModelMonitor:
         self._reference_outputs = _safe_predict(self._model, self._reference)
         self._save_reference_sample()
 
-    def serve_dashboard(self, port: int = 8501) -> None:
-        """Launch the canary dashboard server in a background thread."""
+    def serve_dashboard(self, port: int = 8501, *, host: str = "127.0.0.1") -> None:
+        """Launch the canary dashboard server in a background thread.
+
+        Raises OSError if the port is already in use (e.g. calling this
+        twice, or another process already bound to it) — this happens on
+        the calling thread, unlike monitoring itself.
+
+        host="127.0.0.1" (default): localhost-only. Pass host="0.0.0.0" to
+        make the dashboard reachable from other machines on the network —
+        only do this if you understand that monitor.jsonl (and the
+        unauthenticated /api/data, /api/reference endpoints) may contain
+        raw feature data.
+        """
         from canary_ml import server as _server
-        _server.start(self._log_path, port=port)
+        _server.start(self._log_path, port=port, host=host)
         from rich.console import Console
         Console().print(f"[bold yellow]canary[/bold yellow] dashboard → http://localhost:{port}")
 

@@ -145,7 +145,7 @@ ModelMonitor(
 
 ```bash
 pip install -e ".[dev]"
-pytest                        # 52 tests
+pytest                        # 56 tests
 pytest --cov=canary_ml
 ```
 
