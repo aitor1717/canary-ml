@@ -11,6 +11,8 @@ One line wraps your model. Every `.predict()` call logs drift metrics, detects a
 
 [Project page](https://aitor1717.github.io/canary-ml/) · [Guide & manual](https://aitor1717.github.io/canary-ml/guide.html) · [Live demo](https://aitor1717.github.io/canary-ml/demo.html)
 
+![canary-ml dashboard preview](docs/preview.png)
+
 ---
 
 ## Install
@@ -141,16 +143,6 @@ ModelMonitor(
 | `timestamp` | `str` | ISO 8601 |
 
 `DriftReport` is not directly JSON-serialisable. Use `report.to_dict()` for logging or `json.dumps(report.to_dict())`. Dict-style access (`report["psi_score"]`) is also supported.
-
----
-
-## Testing
-
-```bash
-pip install -e ".[dev]"
-pytest                        # 56 tests
-pytest --cov=canary_ml
-```
 
 ---
 
